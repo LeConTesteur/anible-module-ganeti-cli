@@ -1,0 +1,1 @@
+# anible-module-ganeti-cli
