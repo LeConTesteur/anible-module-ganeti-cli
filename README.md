@@ -1,1 +1,1 @@
-# anible-module-ganeti-cli
+# ansible-module-ganeti-cli
