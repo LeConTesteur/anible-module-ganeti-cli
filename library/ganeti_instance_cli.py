@@ -27,7 +27,7 @@ except ImportError:
         get_keys_to_change_module_params_and_result
     )
     from module_utils.arguments_spec import ganeti_instance_args_spec
-    from module_utils.gnt_command import (
+    from module_utils.gnt_commands import (
         run_gnt_instance_add,
         run_gnt_instance_reboot,
         run_gnt_instance_remove,
@@ -169,10 +169,13 @@ def main():
         )
 
     def modify_vm(name:str, vm_params):
+        disk_count = len(vm_params.get('disks',[]) or [])
+        nic_count = len(vm_params.get('nics',[]) or [])
         return run_gnt_instance_modify(
             name,
             vm_params,
-            is_create=False,
+            actual_disk_count=disk_count,
+            actual_nic_count=nic_count,
             runner=module.run_command,
             error_function=error_function)
 
@@ -211,6 +214,9 @@ def main():
     vm_name = module.params['name']
     vm_info = get_vm_info(vm_name)
     if module.params['state'] == 'present':
+        if not vm_is_present_on_remote(vm_name, vm_info) and not module.params['params']:
+            module.fail_json(msg='The params of VM must be present if VM does\'t exist')
+
         if not vm_is_present_on_remote(vm_name, vm_info):
             create_vm(vm_name, module.params['params'])
             result['changed'] = True

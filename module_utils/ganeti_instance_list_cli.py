@@ -13,7 +13,7 @@ try:
     from ansible.module_utils.gnt_command import build_gnt_instance_list, run_ganeti_cmd
     from ansible.module_utils.argurments_spec import ganeti_instance_args_spec
 except ImportError:
-    from module_utils.gnt_command import build_gnt_instance_list, run_ganeti_cmd
+    from module_utils.gnt_commands import build_gnt_instance_list, run_ganeti_cmd
     from module_utils.arguments_spec import ganeti_instance_args_spec
 
 
@@ -66,8 +66,7 @@ def args_spec_to_field_headers(args_spec: dict) -> dict:
         if spec['type'] == 'dict':
             headers[name] = args_spec_to_field_headers(spec['options'])
         elif spec['type'] == 'list':
-            headers[name] = [args_spec_to_field_headers(
-                s) for s in spec['options']]
+            headers[name] = [args_spec_to_field_headers(s) for s in spec['options']]
         else:
             headers[name] = GntListOption(
                 spec.get('gnt_list_field', name), spec['type'])
@@ -92,6 +91,8 @@ fix_field_headers = {
     'disk_sizes': GntListOption('disk.sizes', 'list_str'),
     'hvparams': GntListOption('hvparams', 'dict'),
     'admin_state': GntListOption('admin_state', 'str'),
+    'disk_count': GntListOption('disk.count', 'int'),
+    'nic_count': GntListOption('nic.count', 'int'),
 }
 
 field_headers = OrderedDict(
@@ -127,6 +128,28 @@ def get_keys_to_change_module_params_and_result(options, remote):
         if o_value is not None and o_keys in remote_flat and o_value != remote_flat[o_keys]
     ]
 
+
+def get_disk_count(remote:dict) -> int:
+    """Get number of disk in server
+
+    Args:
+        remote (dict):  The remote information
+
+    Returns:
+        int: Number of disk
+    """
+    return remote['disk_count']
+
+def get_nic_count(remote:dict) -> int:
+    """Get number of interface in server
+
+    Args:
+        remote (dict): The remote information
+
+    Returns:
+        int: Number of interface
+    """
+    return remote['nic_count']
 
 def parse_str(value):
     """
@@ -167,6 +190,11 @@ def parse_boolean(value: str):
     raise Exception(
         'Boolean value must be "y" or "Y" or "N" or "n", not : {}'.format(value))
 
+def parse_int(value: str):
+    """
+    Parse number value from gnt-instance list column
+    """
+    return int(value)
 
 PARSERS = {
     'str': parse_str,
@@ -174,7 +202,7 @@ PARSERS = {
     'list': parse_list,
     'dict': parse_dict,
     'boolean': parse_boolean,
-    'int': parse_str,
+    'int': parse_int,
 }
 
 
