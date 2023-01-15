@@ -1,4 +1,10 @@
+"""
+Module contains the arguments spec of gnt-instance module
+"""
 def copy_options_nth(options, parent_gnt_list_prefix, number=8):
+    """
+    Copy nth the spec for list options
+    """
     return [
         {
             o_k:dict(

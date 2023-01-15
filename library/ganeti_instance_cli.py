@@ -1,20 +1,39 @@
 #!/usr/bin/python
+"""
+ansible gnt-instance module
+"""
 
-# Copyright: (c) 2018, Terry Jones <terry.jones@example.org>
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import (absolute_import, division, print_function)
-__metaclass__ = type
+__metaclass__ = type # pylint: disable=invalid-name
 
 from ansible.module_utils.basic import AnsibleModule
 
 try:
-    from ansible.module_utils.ganeti_instance_list_cli import run_gnt_instance_list, get_keys_to_change_module_params_and_result
+    from ansible.module_utils.ganeti_instance_list_cli import (
+        run_gnt_instance_list,
+        get_keys_to_change_module_params_and_result
+    )
     from ansible.module_utils.argurments_spec import ganeti_instance_args_spec
-    from ansible.module_utils.gnt_command import run_gnt_instance_add, run_gnt_instance_reboot, run_gnt_instance_remove, run_gnt_instance_stop
+    from ansible.module_utils.gnt_command import (
+        run_gnt_instance_add,
+        run_gnt_instance_reboot,
+        run_gnt_instance_remove,
+        run_gnt_instance_stop,
+        run_gnt_instance_modify
+    )
 except ImportError:
-    from module_utils.ganeti_instance_list_cli import run_gnt_instance_list, get_keys_to_change_module_params_and_result
-    from module_utils.argurments_spec import ganeti_instance_args_spec
-    from module_utils.gnt_command import run_gnt_instance_add, run_gnt_instance_reboot, run_gnt_instance_remove, run_gnt_instance_stop
+    from module_utils.ganeti_instance_list_cli import (
+        run_gnt_instance_list,
+        get_keys_to_change_module_params_and_result
+    )
+    from module_utils.arguments_spec import ganeti_instance_args_spec
+    from module_utils.gnt_command import (
+        run_gnt_instance_add,
+        run_gnt_instance_reboot,
+        run_gnt_instance_remove,
+        run_gnt_instance_stop,
+        run_gnt_instance_modify
+    )
 
 DOCUMENTATION = r'''
 ---
@@ -91,8 +110,10 @@ module_args = dict(
     reboot_if_change=dict(type='bool', required=False, default=False),
 )
 
-def run_module():
-
+def main():
+    """
+    Main function
+    """
 
     # seed the result dict in the object
     # we primarily care about changed and state
@@ -124,8 +145,12 @@ def run_module():
         try:
             return next(
                 filter(
-                    lambda x: x['name'] == name,
-                    run_gnt_instance_list(name, runner=module.run_command, error_function=error_function)
+                    lambda x: x.get('name') == name,
+                    run_gnt_instance_list(
+                        name,
+                        runner=module.run_command,
+                        error_function=error_function
+                    )
                 )
             )
         except StopIteration:
@@ -135,23 +160,49 @@ def run_module():
         return len(get_keys_to_change_module_params_and_result(options, remote)) > 0
 
     def create_vm(name:str, vm_params):
-        return run_gnt_instance_add(name, vm_params, is_create=True, runner=module.run_command, error_function=error_function)
+        return run_gnt_instance_add(
+            name,
+            vm_params,
+            is_create=True,
+            runner=module.run_command,
+            error_function=error_function
+        )
 
     def modify_vm(name:str, vm_params):
-        return run_gnt_instance_add(name, vm_params, is_create=False, runner=module.run_command, error_function=error_function)
+        return run_gnt_instance_modify(
+            name,
+            vm_params,
+            is_create=False,
+            runner=module.run_command,
+            error_function=error_function)
 
     def reboot_vm(name:str):
-        return run_gnt_instance_reboot(name, runner=module.run_command, error_function=error_function)
+        return run_gnt_instance_reboot(
+            name,
+            runner=module.run_command,
+            error_function=error_function
+        )
 
     def stop_vm(name:str = False):
-        return run_gnt_instance_stop(name, runner=module.run_command, error_function=error_function)
+        return run_gnt_instance_stop(
+            name,
+            runner=module.run_command,
+            error_function=error_function
+        )
 
     def remove_vm(name:str):
-        return run_gnt_instance_remove(name, runner=module.run_command, error_function=error_function)
+        return run_gnt_instance_remove(
+            name,
+            runner=module.run_command,
+            error_function=error_function
+        )
+
     # if present expected
     #   if vm does not exit => create (change) (only_one_vm)
     #   if conf has change => modify (only_one_vm)
-    #   reboot if life_state expected is up and (admin_state is not up or want reboot if change and have change) (change) (multi_vm / no conf)
+    #   reboot if life_state expected is up and (
+    #       admin_state is not up or want reboot if change and have change
+    #   ) (change) (multi_vm / no conf)
     #   stop if life_state expected is down and admin_state is not down (multi_vm / no conf)
     # if absent expected:
     #   stop (multi_vm / no conf)
@@ -171,7 +222,7 @@ def run_module():
             module.params['admin_state'] == 'started' and vm_info['admin_state'] !='up':
             reboot_vm(vm_name)
             result['changed'] = True
-        elif module.params['admin_state'] == "stopped" and vm_info['admin_state'] !='down':
+        elif module.params['admin_state'] == 'stopped' and vm_info['admin_state'] !='down':
             stop_vm(vm_name)
             result['changed'] = True
     if module.params['state'] == 'absent':
@@ -188,10 +239,6 @@ def run_module():
 
     # simple AnsibleModule.exit_json(), passing the key/value results
     module.exit_json(**result)
-
-
-def main():
-    run_module()
 
 
 if __name__ == '__main__':

@@ -1,3 +1,6 @@
+"""
+Module contains ganeti command list function.
+"""
 import ast
 from itertools import chain
 from typing import Dict, List
@@ -11,10 +14,15 @@ try:
     from ansible.module_utils.argurments_spec import ganeti_instance_args_spec
 except ImportError:
     from module_utils.gnt_command import build_gnt_instance_list, run_ganeti_cmd
-    from module_utils.argurments_spec import ganeti_instance_args_spec
+    from module_utils.arguments_spec import ganeti_instance_args_spec
 
-#GntListOption = namedtuple('gnt_list_option', ['alias', 'type'])
+
 class GntListOption:
+    """
+    Class relation between gnt-instance list field and parser type
+    alias => the field name
+    type => type of perser. @PARSERS
+    """
     # pylint: disable=redefined-builtin
     def __init__(self, alias, type) -> None:
         self._alias = alias
@@ -22,10 +30,16 @@ class GntListOption:
 
     @property
     def alias(self):
+        """
+        Get alias
+        """
         return self._alias
 
     @property
     def type(self):
+        """
+        Get type
+        """
         return self._type
 
     def __eq__(self, other) -> bool:
@@ -35,11 +49,16 @@ class GntListOption:
     def __repr__(self):
         return 'GntListOption(alias={}, type={})'.format(self.alias, self.type)
 
-separator_col = '--##'
 
-#print(ganeti_instance_args_spec)
+SEPARATOR_COL = '--##'
+
+# print(ganeti_instance_args_spec)
+
 
 def args_spec_to_field_headers(args_spec: dict) -> dict:
+    """
+    Convert ganeti instance arguments spec to field headers
+    """
     headers = {}
     for name, spec in args_spec.items():
         if spec.get('gnt_list_ignore', False):
@@ -47,15 +66,25 @@ def args_spec_to_field_headers(args_spec: dict) -> dict:
         if spec['type'] == 'dict':
             headers[name] = args_spec_to_field_headers(spec['options'])
         elif spec['type'] == 'list':
-            headers[name] = [args_spec_to_field_headers(s) for s in spec['options']]
+            headers[name] = [args_spec_to_field_headers(
+                s) for s in spec['options']]
         else:
-            headers[name] = GntListOption(spec.get('gnt_list_field', name), spec['type'])
+            headers[name] = GntListOption(
+                spec.get('gnt_list_field', name), spec['type'])
     return headers
 
-def ganeti_instance_args_spec_flat_items():
-    return flatdict.FlatterDict(args_spec_to_field_headers(ganeti_instance_args_spec), delimiter='.').items()
 
-fix_headers = {
+def ganeti_instance_args_spec_flat_items():
+    """
+    Flat ganeti instance arguments spec
+    """
+    return flatdict.FlatterDict(
+        args_spec_to_field_headers(ganeti_instance_args_spec),
+        delimiter='.'
+    ).items()
+
+
+fix_field_headers = {
     'name': GntListOption('name', 'str'),
     'nic_names': GntListOption('nic.names', 'list'),
     'nic_modes': GntListOption('nic.modes', 'list_str'),
@@ -66,22 +95,30 @@ fix_headers = {
 }
 
 field_headers = OrderedDict(
-    sorted(chain(fix_headers.items(), ganeti_instance_args_spec_flat_items()), key=lambda x: x[0])
+    sorted(chain(fix_field_headers.items(),
+           ganeti_instance_args_spec_flat_items()), key=lambda x: x[0])
 )
-
-#print(field_headers)
 
 
 def subheaders(*header_names):
+    """
+    Get sub field headers
+    *header_names > list of headers to use. If empty, return empty dict
+    """
     headers = []
     for name in header_names:
         if name not in field_headers:
-            raise KeyError("The header {} is not present in 'field_headers'".format(name))
+            raise KeyError(
+                "The header {} is not present in 'field_headers'".format(name))
         headers.append((name, field_headers[name]))
     return OrderedDict(headers)
 
 
 def get_keys_to_change_module_params_and_result(options, remote):
+    """
+    Get missing keys or changed value between options and remote instance
+    information
+    """
     options_flat = flatdict.FlatterDict(options, delimiter='.')
     remote_flat = flatdict.FlatterDict(remote, delimiter='.')
     return [
@@ -90,29 +127,48 @@ def get_keys_to_change_module_params_and_result(options, remote):
         if o_value is not None and o_keys in remote_flat and o_value != remote_flat[o_keys]
     ]
 
+
 def parse_str(value):
+    """
+    Parse string value from gnt-instance list column
+    """
     return value
 
 
 def parse_list_str(value):
+    """
+    Parse list string value separated by coma  from gnt-instance list column
+    """
     return value.split(',')
 
 
 def parse_list(value):
+    """
+    Parse python list value from gnt-instance list column
+    """
     return ast.literal_eval(value)
 
 
 def parse_dict(value):
+    """
+    Parse python dict value from gnt-instance list column
+    """
     return ast.literal_eval(value)
 
-def parse_boolean(value:str):
+
+def parse_boolean(value: str):
+    """
+    Parse yes/no boolean value from gnt-instance list column
+    """
     if value.lower() == 'y':
         return True
     if value.lower() == 'n':
         return False
-    raise Exception('Boolean value must be "y" or "Y" or "N" or "n", not : {}'.format(value))
+    raise Exception(
+        'Boolean value must be "y" or "Y" or "N" or "n", not : {}'.format(value))
 
-parsers = {
+
+PARSERS = {
     'str': parse_str,
     'list_str': parse_list_str,
     'list': parse_list,
@@ -123,13 +179,19 @@ parsers = {
 
 
 def parse(key, value):
+    """
+    Generic parse function. This function call other function selected by keys
+    """
     if value == '-':
         return None
-    return parsers[key](value)
+    return PARSERS[key](value)
 
 
 def parse_ganeti_list_output_line(stdout: str, headers: Dict[str, GntListOption] = None) -> dict:
-    #print(stdout)
+    """
+    Parse one line of gnt-instance list result
+    """
+    # print(stdout)
     if headers is None:
         headers = field_headers
     if not stdout.strip():
@@ -137,26 +199,39 @@ def parse_ganeti_list_output_line(stdout: str, headers: Dict[str, GntListOption]
 
     col_strip = map(
         lambda x: x.strip(),
-        stdout.split(separator_col)
+        stdout.split(SEPARATOR_COL)
     )
     out_dict_string = OrderedDict(zip(headers.keys(), col_strip))
-    #print(out_dict_string)
-    return OrderedDict([(h_k, parse(h_v.type, out_dict_string[h_k])) for h_k, h_v in headers.items()])
+    # print(out_dict_string)
+    return OrderedDict(
+        [
+            (h_k, parse(h_v.type, out_dict_string[h_k]))
+            for h_k, h_v in headers.items()
+        ]
+    )
 
 
 def parse_ganeti_list_output(
-        *_: str, 
+        *_: str,
         stdout: str,
         headers: Dict[str, GntListOption] = None
     ) -> list:
+    """
+    Parse gnt-instance list result
+    """
     if headers is None:
         headers = field_headers
     gen_list = map(lambda o: parse_ganeti_list_output_line(
         headers=headers, stdout=o), stdout.strip().split('\n'))
     return list(gen_list)
 
+
 def get_alias(gnt_list_option):
+    """
+    Get alias for gnt list options
+    """
     return gnt_list_option.alias
+
 
 def build_command_gnt_instance_list(
         *names: List[str],
@@ -166,7 +241,8 @@ def build_command_gnt_instance_list(
 
     Args:
         names (list[str]): name of instances to view
-        headers (Dict[str, GntListOption], optional): Column to view for instances. Defaults to None.
+        headers (Dict[str, GntListOption], optional): Column to view for instances.
+            Defaults to None.
 
     Raises:
         Exception: if no headers
@@ -184,11 +260,12 @@ def build_command_gnt_instance_list(
 
     return build_gnt_instance_list(*[
         '--no-headers',
-        "--separator='{}'".format(separator_col),
+        "--separator='{}'".format(SEPARATOR_COL),
         "--output",
         filter_options,
         *names
     ])
+
 
 run_gnt_instance_list = partial(
     run_ganeti_cmd,
