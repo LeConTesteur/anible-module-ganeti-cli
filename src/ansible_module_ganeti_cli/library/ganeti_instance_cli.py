@@ -7,33 +7,19 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type # pylint: disable=invalid-name
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_module_ganeti_cli.module_utils.ganeti_instance_list_cli import (
+    run_gnt_instance_list,
+    get_keys_to_change_module_params_and_result
+)
+from ansible_module_ganeti_cli.module_utils.arguments_spec import ganeti_instance_args_spec
+from ansible_module_ganeti_cli.module_utils.gnt_commands import (
+    run_gnt_instance_add,
+    run_gnt_instance_reboot,
+    run_gnt_instance_remove,
+    run_gnt_instance_stop,
+    run_gnt_instance_modify
+)
 
-try:
-    from ansible.module_utils.ganeti_instance_list_cli import (
-        run_gnt_instance_list,
-        get_keys_to_change_module_params_and_result
-    )
-    from ansible.module_utils.argurments_spec import ganeti_instance_args_spec
-    from ansible.module_utils.gnt_command import (
-        run_gnt_instance_add,
-        run_gnt_instance_reboot,
-        run_gnt_instance_remove,
-        run_gnt_instance_stop,
-        run_gnt_instance_modify
-    )
-except ImportError:
-    from module_utils.ganeti_instance_list_cli import (
-        run_gnt_instance_list,
-        get_keys_to_change_module_params_and_result
-    )
-    from module_utils.arguments_spec import ganeti_instance_args_spec
-    from module_utils.gnt_commands import (
-        run_gnt_instance_add,
-        run_gnt_instance_reboot,
-        run_gnt_instance_remove,
-        run_gnt_instance_stop,
-        run_gnt_instance_modify
-    )
 
 DOCUMENTATION = r'''
 ---

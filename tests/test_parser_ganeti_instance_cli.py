@@ -2,7 +2,12 @@ import unittest
 
 from collections import OrderedDict, namedtuple
 
-from module_utils.ganeti_instance_list_cli import parse_ganeti_list_output_line, build_command_gnt_instance_list, subheaders, GntListOption
+from ansible_module_ganeti_cli.module_utils.ganeti_instance_list_cli import (
+  parse_ganeti_list_output_line,
+  build_command_gnt_instance_list,
+  subheaders,
+  GntListOption
+)
 
 
 TestCaseData = namedtuple('TestCaseData', ['input', 'expected'])

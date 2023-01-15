@@ -3,7 +3,7 @@ import json
 import functools
 import unittest
 from unittest.mock import patch, DEFAULT
-from module_utils.gnt_commands import (
+from ansible_module_ganeti_cli.module_utils.gnt_commands import (
     build_prefixes_from_count_diff,
     builder_gnt_instance_add_list_options,
     Prefix,

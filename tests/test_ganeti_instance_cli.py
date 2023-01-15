@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch, DEFAULT
 from ansible.module_utils import basic
 from ansible.module_utils.common.text.converters import to_bytes
-from library.ganeti_instance_cli import main
+from ansible_module_ganeti_cli.library.ganeti_instance_cli import main
 
 def set_module_args(args):
     """prepare arguments so that they will be picked up during module creation"""
@@ -58,24 +58,27 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
         self.mock_module_helper = patch.multiple(basic.AnsibleModule,
                                                  exit_json=exit_json,
                                                  fail_json=fail_json)
-        self.mock_ganeti_command_helper = patch.multiple('library.ganeti_instance_cli',
-                                                 run_gnt_instance_add=run_gnt_instance_cmd,
-                                                 run_gnt_instance_reboot=run_gnt_instance_cmd,
-                                                 run_gnt_instance_stop=run_gnt_instance_cmd,
-                                                 run_gnt_instance_remove=run_gnt_instance_cmd,
-                                                 run_gnt_instance_modify=run_gnt_instance_cmd
+        self.mock_ganeti_command_helper = patch.multiple(
+                                                'ansible_module_ganeti_cli.library.ganeti_instance_cli',
+                                                run_gnt_instance_add=run_gnt_instance_cmd,
+                                                run_gnt_instance_reboot=run_gnt_instance_cmd,
+                                                run_gnt_instance_stop=run_gnt_instance_cmd,
+                                                run_gnt_instance_remove=run_gnt_instance_cmd,
+                                                run_gnt_instance_modify=run_gnt_instance_cmd
         )
         self.mock_module_helper.start()
         self.mock_ganeti_command_helper.start()
         self.addCleanup(self.mock_ganeti_command_helper.stop)
         self.addCleanup(self.mock_module_helper.stop)
 
-        self.patch_run_gnt_list = patch('library.ganeti_instance_cli.run_gnt_instance_list')
-        self.patch_run_gnt_stop = patch('library.ganeti_instance_cli.run_gnt_instance_stop')
-        self.patch_run_gnt_remove = patch('library.ganeti_instance_cli.run_gnt_instance_remove')
-        self.patch_run_gnt_modify = patch('library.ganeti_instance_cli.run_gnt_instance_modify')
-        self.patch_run_gnt_add = patch('library.ganeti_instance_cli.run_gnt_instance_add')
-        self.patch_run_gnt_reboot = patch('library.ganeti_instance_cli.run_gnt_instance_reboot')
+        func_name = 'ansible_module_ganeti_cli.library.ganeti_instance_cli.{}'
+
+        self.patch_run_gnt_list = patch(func_name.format('run_gnt_instance_list'))
+        self.patch_run_gnt_stop = patch(func_name.format('run_gnt_instance_stop'))
+        self.patch_run_gnt_remove = patch(func_name.format('run_gnt_instance_remove'))
+        self.patch_run_gnt_modify = patch(func_name.format('run_gnt_instance_modify'))
+        self.patch_run_gnt_add = patch(func_name.format('run_gnt_instance_add'))
+        self.patch_run_gnt_reboot = patch(func_name.format('run_gnt_instance_reboot'))
 
         self.run_gnt_list = self.patch_run_gnt_list.start()
         self.run_gnt_stop = self.patch_run_gnt_stop.start()

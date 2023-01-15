@@ -9,12 +9,11 @@ from functools import partial
 import flatdict
 
 
-try:
-    from ansible.module_utils.gnt_command import build_gnt_instance_list, run_ganeti_cmd
-    from ansible.module_utils.argurments_spec import ganeti_instance_args_spec
-except ImportError:
-    from module_utils.gnt_commands import build_gnt_instance_list, run_ganeti_cmd
-    from module_utils.arguments_spec import ganeti_instance_args_spec
+from ansible_module_ganeti_cli.module_utils.gnt_commands import (
+    build_gnt_instance_list,
+    run_ganeti_cmd
+)
+from ansible_module_ganeti_cli.module_utils.arguments_spec import ganeti_instance_args_spec
 
 
 class GntListOption:
