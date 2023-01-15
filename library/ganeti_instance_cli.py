@@ -4,22 +4,23 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
+
+from ansible.module_utils.basic import AnsibleModule
+
 try:
-    from ansible.module_utils.ganeti_instance_list_cli import run_gnt_instance_list, get_keys_to_change_module_params_and_result,builder_gnt_instance_add
+    from ansible.module_utils.ganeti_instance_list_cli import run_gnt_instance_list, get_keys_to_change_module_params_and_result
     from ansible.module_utils.argurments_spec import ganeti_instance_args_spec
     from ansible.module_utils.gnt_command import run_gnt_instance_add, run_gnt_instance_reboot, run_gnt_instance_remove, run_gnt_instance_stop
-
-except ModuleNotFoundError:
-    from module_utils.ganeti_instance_list_cli import run_gnt_instance_list, get_keys_to_change_module_params_and_result, builder_gnt_instance_add
+except ImportError:
+    from module_utils.ganeti_instance_list_cli import run_gnt_instance_list, get_keys_to_change_module_params_and_result
     from module_utils.argurments_spec import ganeti_instance_args_spec
     from module_utils.gnt_command import run_gnt_instance_add, run_gnt_instance_reboot, run_gnt_instance_remove, run_gnt_instance_stop
 
 DOCUMENTATION = r'''
 ---
-module: my_test
+module: ganeti_instance_cli
 
-short_description: This is my test module
-
+short_description: Create/Remove/Modify ganeti instance from cli
 # If this is part of a collection, you need to use semantic versioning,
 # i.e. the version is of the form "2.5.0" and not "2.4".
 version_added: "1.0.0"
@@ -78,21 +79,20 @@ message:
     sample: 'goodbye'
 '''
 
-from ansible.module_utils.basic import AnsibleModule
-import json
 
+# define available arguments/parameters a user can pass to the module
+state_choices = ['present', 'absent']
+admin_state_choices = ['restarted', 'started', 'stopped']
+module_args = dict(
+    name=dict(type='str', required=True,aliases=['instance_name']),
+    state=dict(type='str', required=False, default='present', choises=state_choices),
+    params=dict(type='dict', required=False, options=ganeti_instance_args_spec),
+    admin_state=dict(type='str', required=False, default='started', choises=admin_state_choices),
+    reboot_if_change=dict(type='bool', required=False, default=False),
+)
 
 def run_module():
-    # define available arguments/parameters a user can pass to the module
-    state_choices = ['present', 'absent']
-    admin_state_choices = ['restarted', 'started', 'stopped']
-    module_args = dict(
-        name=dict(type='str', required=True,aliases=['instance_name']),
-        state=dict(type='str', required=False, default='present', choises=state_choices),
-        params=dict(type='dict', required=False, options=ganeti_instance_args_spec),
-        admin_state=dict(type='str', required=False, default='started', choises=admin_state_choices),
-        reboot_if_change=dict(type='boolean', required=False, default=False),
-    )
+
 
     # seed the result dict in the object
     # we primarily care about changed and state
@@ -114,14 +114,22 @@ def run_module():
         supports_check_mode=True
     )
 
-    def error_function(code, stdout, stderr, msg=None)
+    def error_function(code, stdout, stderr, msg=None):
         module.fail_json(msg=msg, code=code, stdout=stdout, stderr=stderr)
 
-    def vm_is_present_on_remote(name:str):
-        return any(filter(lambda x: x['name'] == name, run_gnt_instance_list(name, runner=module.run_command, error_function=error_function)))
+    def vm_is_present_on_remote(name:str, vm_info):
+        return vm_info is not None and vm_info['name'] == name
 
     def get_vm_info(name:str):
-        return next(filter(lambda x: x['name'] == name, run_gnt_instance_list(name, runner=module.run_command, error_function=error_function)))
+        try:
+            return next(
+                filter(
+                    lambda x: x['name'] == name,
+                    run_gnt_instance_list(name, runner=module.run_command, error_function=error_function)
+                )
+            )
+        except StopIteration:
+            return None
 
     def have_vm_change(options, remote):
         return len(get_keys_to_change_module_params_and_result(options, remote)) > 0
@@ -135,7 +143,7 @@ def run_module():
     def reboot_vm(name:str):
         return run_gnt_instance_reboot(name, runner=module.run_command, error_function=error_function)
 
-    def stop_vm(name:str, force:bool):
+    def stop_vm(name:str = False):
         return run_gnt_instance_stop(name, runner=module.run_command, error_function=error_function)
 
     def remove_vm(name:str):
@@ -152,36 +160,31 @@ def run_module():
     vm_name = module.params['name']
     vm_info = get_vm_info(vm_name)
     if module.params['state'] == 'present':
-        if not vm_is_present_on_remote(vm_name):
+        if not vm_is_present_on_remote(vm_name, vm_info):
             create_vm(vm_name, module.params['params'])
             result['changed'] = True
         elif have_vm_change(module.params['params'], vm_info):
             modify_vm(vm_name, module.params['params'])
             result['changed'] = True
         if module.params['admin_state'] == 'restarted' or \
-            module.params['admin_state'] == 'up' and result['changed'] or \
-            module.params['admin_state'] == 'up' and vm_info['admin_state'] !='up':
+            module.params['admin_state'] == 'started' and result['changed'] or \
+            module.params['admin_state'] == 'started' and vm_info['admin_state'] !='up':
             reboot_vm(vm_name)
             result['changed'] = True
-        elif module.params['admin_state'] and vm_info['admin_state'] !='down':
+        elif module.params['admin_state'] == "stopped" and vm_info['admin_state'] !='down':
             stop_vm(vm_name)
             result['changed'] = True
     if module.params['state'] == 'absent':
-        stop_vm(vm_name)
-        remove_vm(vm_name)
-        result['changed'] = True
+        if vm_is_present_on_remote(vm_name, vm_info):
+            stop_vm(vm_name)
+            remove_vm(vm_name)
+            result['changed'] = True
 
     # if the user is working with this module in only check mode we do not
     # want to make any changes to the environment, just return the current
     # state with no modifications
     if module.check_mode:
         module.exit_json(**result)
-
-    # during the execution of the module, if there is an exception or a
-    # conditional state that effectively causes a failure, run
-    # AnsibleModule.fail_json() to pass in the message and the result
-    if module.params['name'] == 'fail me':
-        module.fail_json(msg='You requested this to fail', **result)
 
     # simple AnsibleModule.exit_json(), passing the key/value results
     module.exit_json(**result)

@@ -1,5 +1,3 @@
-import flatdict
-
 def copy_options_nth(options, parent_gnt_list_prefix, number=8):
     return [
         {
@@ -12,6 +10,7 @@ def copy_options_nth(options, parent_gnt_list_prefix, number=8):
                 )
             )
             for o_k, o_v in options.items()
+            if not o_v.get('gnt_list_ignore', False)
         }
         for index in range(number)
     ]
@@ -33,9 +32,9 @@ disks_options = dict(
     name=dict(type="str", require=True),
     size=dict(type="int", require=True),
     spindles=dict(type="str", require=False),
-    vg=dict(type="str", require=False),
-    metavg=dict(type="str", require=False),
-    access=dict(type="str", require=False),
+    vg=dict(type="str", require=False, gnt_list_ignore=True),
+    metavg=dict(type="str", require=False, gnt_list_ignore=True),
+    access=dict(type="str", require=False, gnt_list_ignore=True),
 )
 backend_param = dict(
     memory=dict(type='int', required=False, gnt_list_field='be/memory'),
@@ -47,16 +46,16 @@ hypervisor_params = dict(
     kernel_path=dict(type='str', required=False, gnt_list_field='hv/kernel_path'),
 )
 
-osparams = dict()
+osparams = []
 
 ganeti_instance_args_spec = dict(
     disk_template=dict(type='str', default='plain', choices=disk_templates),
     disks=dict(type='list', required=False, options=copy_options_nth(disks_options, 'disk')),
     hypervisor=dict(type='str', default='kvm', choices=hypervisor_choices),
-    iallocator=dict(type='str', required=False, default='hail'),
+    iallocator=dict(type='str', required=False, default='hail', gnt_list_ignore=True),
     nics=dict(type='list', required=False, options=copy_options_nth(nics_options, 'nic')),
-    os_type=dict(type='str', required=False),
-    osparams=dict(type='dict', required=False, options=osparams),
+    os_type=dict(type='str', required=False, gnt_list_field='os'),
+    #osparams=dict(type='dict', required=False, options=osparams),
     pnode=dict(type='str', required=False, default=None),
     hypervisor_params=dict(type='dict', required=False, options=hypervisor_params),
     backend_param=dict(type='dict', required=False, options=backend_param),

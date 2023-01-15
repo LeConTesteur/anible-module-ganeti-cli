@@ -1,6 +1,6 @@
 from functools import partial
 from typing import Callable, Any, List, Dict
-from enum import Enum, auto
+from enum import Enum
 
 def build_ganeti_cmd(*args:List[str], binary:str, cmd:str) -> str:
     return "{bin} {cmd} {args_merged}".format(
@@ -17,20 +17,21 @@ build_gnt_instance_stop = partial(build_gnt_instance, cmd='stop')
 build_gnt_instance_start = partial(build_gnt_instance, cmd='start')
 build_gnt_instance_reboot = partial(build_gnt_instance, cmd='reboot')
 
-def run_ganeti_cmd(*args, builder: Callable, parser: Callable, runner: Callable, error_fonction: Callable, **kwargs) -> Any:
+def run_ganeti_cmd(*args, builder: Callable, parser: Callable, runner: Callable, error_function: Callable, **kwargs) -> Any:
     cmd = builder(*args, **kwargs)
+    #print(cmd)
     code, stdout, stderr = runner(cmd, check_rc=True)
     if code != 0:
         msg='Command "{}" failed'.format(cmd)
-        if error_fonction:
-            return error_fonction(code, stdout, stderr, msg=msg)
+        if error_function:
+            return error_function(code, stdout, stderr, msg=msg)
         raise Exception("{msg} with (code={code}, stdout={stdout}, stderr={stderr})".format(
             msg=msg,
             code=code,
             stdout=stdout,
             stderr=stderr
         ))
-    return parser(*args, **kwargs)
+    return parser(*args, stdout=stdout, **kwargs)
 
 def builder_dict_to_options(value: dict):
     return ",".join(
@@ -40,11 +41,10 @@ def builder_dict_to_options(value: dict):
     )
 
 class PrefixEnum(Enum):
-    NONE = auto()
-    INDEX = auto()
-    ADD = auto()
-    STR = auto()
-    
+    NONE = 0
+    INDEX = 1
+    ADD = 2
+    STR = 3
 
 def builder_gnt_instance_add_list_options(nics: List[Dict], option_name:str, prefix_enum=PrefixEnum.NONE, prefix:str=None) -> str:
     def get_prefix(index) -> str:
@@ -79,7 +79,7 @@ def builder_gnt_instance_add(name, params, is_create=True):
 
 def builder_gnt_instance_reboot(name, timeout=0):
     return build_gnt_instance_reboot(
-        "--shutdown-timeout=0",
+        "--shutdown-timeout={}".format(timeout),
         name
     )
 
@@ -97,10 +97,13 @@ def builder_gnt_instance_start(name):
 
 def builder_gnt_instance_remove(name):
     return build_gnt_instance_remove(
+        "--dry-run",
+        "--force",
         name
     )
 
-def parse_ganeti_cmd_output(stdout: str):
+# pylint: disable=unused-argument
+def parse_ganeti_cmd_output(*_, stdout: str, **__):
     return None
 
 run_gnt_instance_add = partial(

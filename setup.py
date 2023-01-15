@@ -11,7 +11,8 @@ requirements_tests = [
     "flake8",
     "coverage",
     'tox',
-    'virtualenv'
+    'virtualenv',
+    'ansible'
 ]
 
 extras = {
