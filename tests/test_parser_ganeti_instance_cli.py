@@ -1,6 +1,6 @@
 import unittest
 
-from collections import namedtuple
+from collections import OrderedDict, namedtuple
 
 from module_utils.ganeti_instance_list_cli import parse_ganeti_list_output_line, build_command_gnt_instance_list, subheaders, GntListOption
 
@@ -36,12 +36,12 @@ class TestGanetiInstanceList(unittest.TestCase):
     self.assertEqual(len(subheaders()), 0)
     self.assertEqual(len(subheaders('name')), 1)
     self.assertEqual(len(subheaders('name', 'nic_names')), 2)
-    self.assertEqual(
+    self.assertDictEqual(
       subheaders('name', 'nic_names'),
-      {
-        'name': GntListOption('name', 'str'),
-        'nic_names': GntListOption('nic.names', 'list'),
-      }
+      OrderedDict(
+        name=GntListOption('name', 'str'),
+        nic_names=GntListOption('nic.names', 'list'),
+      )
     )
 
   def test_parse_with_headers(self):

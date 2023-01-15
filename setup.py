@@ -9,7 +9,9 @@ requirements = [
 
 requirements_tests = [
     "flake8",
-    "coverage"
+    "coverage",
+    'tox',
+    'virtualenv'
 ]
 
 extras = {

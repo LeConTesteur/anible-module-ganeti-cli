@@ -1,4 +1,6 @@
 import ast
+import flatdict
+from itertools import chain
 from typing import Dict, List
 from collections import namedtuple, OrderedDict
 from functools import partial
@@ -8,45 +10,79 @@ try:
 except (ModuleNotFoundError, ImportError):
     from module_utils.gnt_command import build_gnt_instance_list, run_ganeti_cmd
 
-GntListOption = namedtuple('gnt_list_option', ['alias', 'type', 'group_by', 'single_name'])
+try:
+    from ansible.module_utils.argurments_spec import ganeti_instance_args_spec
+except (ModuleNotFoundError, ImportError):
+    from module_utils.argurments_spec import ganeti_instance_args_spec
 
+#GntListOption = namedtuple('gnt_list_option', ['alias', 'type'])
+class GntListOption:
+    def __init__(self, alias, type) -> None:
+        self.alias = alias
+        self.type = type
+
+    def __eq__(self, other) -> bool:
+        return self.alias == other.alias \
+            and self.type == other.type
+
+    def __repr__(self):
+        return '(alias={}, type={})'.format(self.alias, self.type)
 
 separator_col = ' '*4
 
-filter_headers = {
-    'name': GntListOption('name', 'str',None,None),
-    'nic_names': GntListOption('nic.names', 'list', 'nics', 'name'),
-    'nic_modes': GntListOption('nic.modes', 'list_str', 'nics', 'mode'),
-    'nic_vlans': GntListOption('nic.vlans', 'list', 'nics', 'vlans'),
-    'nic_ips': GntListOption('nic.ips', 'list', 'nics', 'ip'),
-    'nic_links': GntListOption('nic.links', 'list_str', 'nics', 'link'),
-    'nic_macs': GntListOption('nic.macs', 'list_str', 'nics','mac'),
-    'nic_count': GntListOption('nic.count', 'number',None,None),
-    'nic_networks': GntListOption('nic.networks.names', 'list', 'nics', 'network'),
-    'disk_count': GntListOption('disk.count', 'number',None,None),
-    'disk_names': GntListOption('disk.names', 'list', 'disks', 'name'),
-    'disk_sizes': GntListOption('disk.sizes', 'list_str', 'disks', 'size'),
-    'disk_template': GntListOption('disk_template', 'list_str', 'disks', 'template'),
-    'hvparams': GntListOption('hvparams', 'dict',None,None),
-    'os': GntListOption('os', 'str',None,None),
-    'osparams': GntListOption('osparams', 'dict',None,None),
-    'hypervisor': GntListOption('hypervisor', 'str',None,None),
-    'pnode': GntListOption('pnode', 'str',None,None),
-    'oper_ram': GntListOption('oper_ram', 'str',None,None),
-    'oper_state': GntListOption('oper_state', 'boolean',None,None),
-    'oper_vcpus': GntListOption('oper_vcpus', 'number',None,None),
-    'network_port': GntListOption('network_port', 'str',None,None),
-    'beparams': GntListOption('beparams', 'dict',None,None),
-    'admin_state': GntListOption('admin_state', 'str',None,None),
-    'admin_up': GntListOption('admin_up', 'boolean',None,None),
-    'console': GntListOption('console', 'dict',None,None),
+#print(ganeti_instance_args_spec)
+
+def args_spec_to_field_headers(args_spec: dict) -> dict:
+    headers = {}
+    for name, spec in args_spec.items():
+        if spec['type'] == 'dict':
+            headers[name] = args_spec_to_field_headers(spec['options'])
+        elif spec['type'] == 'list':
+            headers[name] = [args_spec_to_field_headers(s) for s in spec['options']]
+        else:
+            headers[name] = GntListOption(spec.get('gnt_list_field', name), spec['type'])
+    return headers
+
+def ganeti_instance_args_spec_flat_items():
+    return {
+        param_name: GntListOption(option, option.replace('gnt_list_field', 'type'))
+        for param_name, option in flatdict.FlatterDict(args_spec_to_field_headers(ganeti_instance_args_spec), delimiter='.').items()
+        if 'gnt_list_field' in param_name
+    }.items()
+
+fix_headers = {
+    'name': GntListOption('name', 'str'),
+    'nic_names': GntListOption('nic.names', 'list'),
+    'nic_modes': GntListOption('nic.modes', 'list_str'),
+    'nic_vlans': GntListOption('nic.vlans', 'list'),
+    'disk_sizes': GntListOption('disk.sizes', 'list_str'),
+    'hvparams': GntListOption('hvparams', 'dict'),
 }
-filter_headers = OrderedDict(sorted(filter_headers.items(), key=lambda x: x[0]))
+
+field_headers = OrderedDict(
+    sorted(chain(fix_headers.items(), ganeti_instance_args_spec_flat_items()), key=lambda x: x[0])
+)
+
+#print(field_headers)
 
 
 def subheaders(*header_names):
-    return {k: v for k, v in filter_headers.items() if k in header_names}
+    headers = []
+    for name in header_names:
+        if name not in field_headers:
+            raise KeyError("The header {} is not present in 'field_headers'".format(name))
+        headers.append((name, field_headers[name]))
+    return OrderedDict(headers)
 
+
+def get_keys_to_change_module_params_and_result(options, remote):
+    options_flat = flatdict.FlatterDict(options, delimiter='.')
+    remote_flat = flatdict.FlatterDict(remote, delimiter='.')
+    return [
+        o_keys
+        for o_keys, o_value in options_flat.items()
+        if o_value is not None and o_keys in remote_flat and o_value != remote_flat[o_keys]
+    ]
 
 def parse_str(value):
     return value
@@ -86,7 +122,7 @@ def parse(key, value):
 
 def parse_ganeti_list_output_line(stdout: str, headers: Dict[str, GntListOption] = None) -> dict:
     if headers is None:
-        headers = filter_headers
+        headers = field_headers
     if not stdout.strip():
         return None
     col_strip = map(
@@ -96,21 +132,17 @@ def parse_ganeti_list_output_line(stdout: str, headers: Dict[str, GntListOption]
             stdout.split(separator_col)
         )
     )
-    out_dict_string = dict(zip(headers.keys(), col_strip))
-    return {h_k: parse(h_v.type, out_dict_string[h_k]) for h_k, h_v in headers.items()}
+    out_dict_string = OrderedDict(zip(headers.keys(), col_strip))
+    return OrderedDict([(h_k, parse(h_v.type, out_dict_string[h_k])) for h_k, h_v in headers.items()])
 
 
 def parse_ganeti_list_output(
         *_: str, 
-        code: int,
         stdout: str,
-        stderr: str = None,
         headers: Dict[str, GntListOption] = None
     ) -> list:
-    if code != 0:
-        return []
     if headers is None:
-        headers = filter_headers
+        headers = field_headers
     gen_list = map(lambda o: parse_ganeti_list_output_line(
         headers=headers, stdout=o), stdout.strip().split('\n'))
     return convert_gnt_list_out_to_ansible_options_list(list(gen_list))
@@ -133,7 +165,7 @@ def build_command_gnt_instance_list(
         str: The return of command
     """
     if headers is None:
-        headers = filter_headers
+        headers = field_headers
     if len(headers) == 0:
         raise Exception("Must be have headers")
     filter_options = ','.join(
@@ -156,7 +188,7 @@ def merge_group_field(output, group):
     group_options = list(
                         filter(
                             lambda x: x[1].group_by == group,
-                            filter_headers.items()
+                            field_headers.items()
                         )
                     )
     group_keys_short = [g[1].single_name for g in group_options]
@@ -174,7 +206,7 @@ def get_ungroup_filed(output):
                         lambda x: x[0],
                         filter(
                             lambda x: not x[1].group_by,
-                            filter_headers.items()
+                            field_headers.items()
                         )
                     )
                 )

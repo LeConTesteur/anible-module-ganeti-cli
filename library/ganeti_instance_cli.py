@@ -5,9 +5,14 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 try:
-    from ansible.module_utils.ganeti_instance_list_cli import run_gnt_instance_list, convert_gnt_list_out_to_ansible_options_list
+    from ansible.module_utils.ganeti_instance_list_cli import run_gnt_instance_list, get_keys_to_change_module_params_and_result,builder_gnt_instance_add
+    from ansible.module_utils.argurments_spec import ganeti_instance_args_spec
+    from ansible.module_utils.gnt_command import run_gnt_instance_add, run_gnt_instance_reboot, run_gnt_instance_remove, run_gnt_instance_stop
+
 except ModuleNotFoundError:
-    from module_utils.ganeti_instance_list_cli import run_gnt_instance_list, convert_gnt_list_out_to_ansible_options_list
+    from module_utils.ganeti_instance_list_cli import run_gnt_instance_list, get_keys_to_change_module_params_and_result, builder_gnt_instance_add
+    from module_utils.argurments_spec import ganeti_instance_args_spec
+    from module_utils.gnt_command import run_gnt_instance_add, run_gnt_instance_reboot, run_gnt_instance_remove, run_gnt_instance_stop
 
 DOCUMENTATION = r'''
 ---
@@ -75,62 +80,18 @@ message:
 
 from ansible.module_utils.basic import AnsibleModule
 import json
-import flatdict
 
-def copy_options_nth(options, number=8):
-  return [options for _ in range(number)]
-
-def vm_is_present_on_remote(name:str, run_command):
-    return any(filter(lambda x: x['name'] == name, run_gnt_instance_list(name, runner=run_command)))
-
-def vm_info(name:str, run_command):
-    return next(filter(lambda x: x['name'] == name, run_gnt_instance_list(name, runner=run_command)))
-
-def get_keys_to_change(options, remote):
-    options_flat = flatdict.FlatterDict(options, delimiter='.')
-    remote_flat = flatdict.FlatterDict(remote, delimiter='.')
-    return [
-        o_keys
-        for o_keys, o_value in options_flat.items()
-        if o_value is not None and o_keys in remote_flat and o_value != remote_flat[o_keys]
-    ]
-
-def have_vm_change(options, remote):
-    return len(get_keys_to_change(options, remote)) > 0
 
 def run_module():
     # define available arguments/parameters a user can pass to the module
-    disk_templates = ['sharedfile', 'diskless', 'plain', 'gluster', 'blockdev',
-                      'drbd', 'ext', 'file', 'rbd']
-    hypervisor_choices = ['chroot', 'xen-pvm', 'kvm', 'xen-hvm', 'lxc', 'fake']
-    state_choices = ['present', 'absent', 'restarted', 'started', 'stopped']
-    nic_types_choices = ['bridged', 'openvswitch']
-    nics_options = dict(
-      name=dict(type="str", require=True),
-      mode=dict(type="str", require=False, default=nic_types_choices[0], choices=nic_types_choices),
-      vlan=dict(type="int", require=False),
-      network=dict(type="str", require=False),
-      mac=dict(type="str", require=False),
-      link=dict(type="str", require=False),
-      ip=dict(type="str", require=False),
-    )
-    create_params = dict(
-        disk_template=dict(type='str', default='plain', choices=disk_templates),
-        disks=dict(type='list', required=False),
-        hypervisor=dict(type='str', default='kvm', choices=hypervisor_choices),
-        iallocator=dict(type='str', required=False, default='hail'),
-        nics=dict(type='list', required=False, options=copy_options_nth(nics_options)),
-        os_type=dict(type='str', required=False),
-        osparams=dict(type='dict', required=False),
-        pnode=dict(type='str', required=False, default=None),
-        # beparams
-        memory=dict(type='int', required=False),
-        vcpus=dict(type='int', required=False),
-    )
+    state_choices = ['present', 'absent']
+    admin_state_choices = ['restarted', 'started', 'stopped']
     module_args = dict(
         name=dict(type='str', required=True,aliases=['instance_name']),
         state=dict(type='str', required=False, default='present', choises=state_choices),
-        params=dict(type='dict', required=False, options=create_params)
+        params=dict(type='dict', required=False, options=ganeti_instance_args_spec),
+        admin_state=dict(type='str', required=False, default='started', choises=admin_state_choices),
+        reboot_if_change=dict(type='boolean', required=False, default=False),
     )
 
     # seed the result dict in the object
@@ -153,34 +114,75 @@ def run_module():
         supports_check_mode=True
     )
 
+    def error_function(code, stdout, stderr, msg=None)
+        module.fail_json(msg=msg, code=code, stdout=stdout, stderr=stderr)
+
+    def vm_is_present_on_remote(name:str):
+        return any(filter(lambda x: x['name'] == name, run_gnt_instance_list(name, runner=module.run_command, error_function=error_function)))
+
+    def get_vm_info(name:str):
+        return next(filter(lambda x: x['name'] == name, run_gnt_instance_list(name, runner=module.run_command, error_function=error_function)))
+
+    def have_vm_change(options, remote):
+        return len(get_keys_to_change_module_params_and_result(options, remote)) > 0
+
+    def create_vm(name:str, vm_params):
+        return run_gnt_instance_add(name, vm_params, is_create=True, runner=module.run_command, error_function=error_function)
+
+    def modify_vm(name:str, vm_params):
+        return run_gnt_instance_add(name, vm_params, is_create=False, runner=module.run_command, error_function=error_function)
+
+    def reboot_vm(name:str):
+        return run_gnt_instance_reboot(name, runner=module.run_command, error_function=error_function)
+
+    def stop_vm(name:str, force:bool):
+        return run_gnt_instance_stop(name, runner=module.run_command, error_function=error_function)
+
+    def remove_vm(name:str):
+        return run_gnt_instance_remove(name, runner=module.run_command, error_function=error_function)
+    # if present expected
+    #   if vm does not exit => create (change) (only_one_vm)
+    #   if conf has change => modify (only_one_vm)
+    #   reboot if life_state expected is up and (admin_state is not up or want reboot if change and have change) (change) (multi_vm / no conf)
+    #   stop if life_state expected is down and admin_state is not down (multi_vm / no conf)
+    # if absent expected:
+    #   stop (multi_vm / no conf)
+    #   remove (list before form multi_vm)
+
+    vm_name = module.params['name']
+    vm_info = get_vm_info(vm_name)
+    if module.params['state'] == 'present':
+        if not vm_is_present_on_remote(vm_name):
+            create_vm(vm_name, module.params['params'])
+            result['changed'] = True
+        elif have_vm_change(module.params['params'], vm_info):
+            modify_vm(vm_name, module.params['params'])
+            result['changed'] = True
+        if module.params['admin_state'] == 'restarted' or \
+            module.params['admin_state'] == 'up' and result['changed'] or \
+            module.params['admin_state'] == 'up' and vm_info['admin_state'] !='up':
+            reboot_vm(vm_name)
+            result['changed'] = True
+        elif module.params['admin_state'] and vm_info['admin_state'] !='down':
+            stop_vm(vm_name)
+            result['changed'] = True
+    if module.params['state'] == 'absent':
+        stop_vm(vm_name)
+        remove_vm(vm_name)
+        result['changed'] = True
+
     # if the user is working with this module in only check mode we do not
     # want to make any changes to the environment, just return the current
     # state with no modifications
     if module.check_mode:
         module.exit_json(**result)
 
-    # manipulate or modify the state as needed (this is going to be the
-    # part where your module will do what it needs to do)
-    result['original_message'] = module.params['name']
-    result['message'] = json.dumps(module.params)
-
-    # use whatever logic you need to determine whether or not this module
-    # made any modifications to your target
-    if module.params['state'] == 'present':
-        result['changed'] = True
-
     # during the execution of the module, if there is an exception or a
     # conditional state that effectively causes a failure, run
     # AnsibleModule.fail_json() to pass in the message and the result
     if module.params['name'] == 'fail me':
         module.fail_json(msg='You requested this to fail', **result)
-    vm_is_present_on_remote(module.params['name'], module.run_command)
-    result['is_present'] = json.dumps(vm_is_present_on_remote(module.params['name'], module.run_command))
-    info = vm_info(module.params['name'], module.run_command)
-    result['vm_info'] = json.dumps(info)
-    result['keys'] = json.dumps(get_keys_to_change(module.params['params'], info))
-    result['have_change'] = json.dumps(have_vm_change(module.params['params'], info))
-    # in the event of a successful module execution, you will want to
+
     # simple AnsibleModule.exit_json(), passing the key/value results
     module.exit_json(**result)
 
@@ -191,4 +193,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
