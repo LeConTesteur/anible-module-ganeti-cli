@@ -1,0 +1,37 @@
+- hosts: all
+  user: admin
+  become: true
+  tasks:
+  - name: Set password vagrant
+    shell: echo 'vagrant:vagrant' | chpasswd
+  - name: Enabled password in sshd
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      regex: '^#PasswordAuthentication'
+      line: PasswordAuthentication yes
+    notify:
+      - restart sshd
+  - name: Install ganeti
+    ansible.builtin.apt:
+      name: ganeti
+      state: present
+      update_cache: yes
+  - name: create bridge
+    copy:
+      src: br_gnt.conf
+      dest: /etc/network/interfaces.d/
+      owner: root
+      group: root
+      mode: 0644
+    notify:
+      - restart network
+  handlers:
+    - name: restart network
+      ansible.builtin.systemd:
+        state: restarted
+        name: networking
+    - name: restart sshd
+      ansible.builtin.systemd:
+        state: restarted
+        name: sshd
+

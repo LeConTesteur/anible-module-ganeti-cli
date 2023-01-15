@@ -1,0 +1,5 @@
+- hosts: all
+  become: true
+  tasks:
+    - name: Test
+      shell: echo test

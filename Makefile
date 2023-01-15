@@ -1,2 +1,3 @@
 test: $(wildcard tests/*)
-	tox test
+	tox
+
