@@ -2,18 +2,20 @@ import unittest
 
 from collections import OrderedDict, namedtuple
 
-from ansible_module_ganeti_cli.module_utils.ganeti_instance_list_cli import (
+from ansible_module_ganeti_cli.module_utils.gnt_instance_list import (
   parse_ganeti_list_output_line,
-  build_command_gnt_instance_list,
+  build_gnt_instance_list_arguments,
   subheaders,
-  GntListOption
+  GntListOption,
+  merge_alias_headers,
+  field_headers
 )
 
 
 TestCaseData = namedtuple('TestCaseData', ['input', 'expected'])
 
 expected_headers = ['name', 'nic_names', 'nic_modes', 'nic_vlans', 'disk_sizes', 'hvparams']
-gnt_instance_list_base = "gnt-instance list --no-headers --separator='--##'"
+gnt_instance_list_base = ['--no-headers', "--separator='--##'", '--output']
 
 data_tests_full_headers = [
   TestCaseData(
@@ -62,29 +64,30 @@ class TestGanetiInstanceList(unittest.TestCase):
         parse_ganeti_list_output_line(stdout=data.input, headers=headers)
       )
 
-  def test_build_command_gnt_instance_list_multi_headers_and_names(self):
-    headers = subheaders(*['name', 'nic_names', 'nic_modes'])
+  def test_build_gnt_instance_list_arguments_multi_headers_and_names(self):
     self.assertEqual(
-      build_command_gnt_instance_list('toto', 'test', headers=headers),
-      "{} --output name,nic.names,nic.modes toto test".format(gnt_instance_list_base)
+      build_gnt_instance_list_arguments('toto', 'test', header_names=['name', 'nic_names', 'nic_modes']),
+      gnt_instance_list_base + ['name,nic.names,nic.modes', 'toto', "test"]
     )
 
-  def test_build_command_gnt_instance_list_multi_headers_one_name(self):
-    headers = subheaders(*['name', 'nic_names'])
+  def test_build_gnt_instance_list_arguments_multi_headers_one_name(self):
     self.assertEqual(
-      build_command_gnt_instance_list('test', headers=headers),
-      "{} --output name,nic.names test".format(gnt_instance_list_base)
+      build_gnt_instance_list_arguments('test', header_names=['name', 'nic_names']),
+      gnt_instance_list_base + ['name,nic.names', "test"]
     )
 
-  def test_build_command_gnt_instance_list_one_header_and_no_name(self):
-    headers = subheaders(*['name'])
+  def test_build_gnt_instance_list_arguments_one_header_and_no_name(self):
     self.assertEqual(
-      build_command_gnt_instance_list(headers=headers),
-      "{} --output name".format(gnt_instance_list_base)
+      build_gnt_instance_list_arguments(header_names=['name']),
+      gnt_instance_list_base + ['name']
     )
-  def test_build_command_gnt_instance_list_error_headers(self):
-    with self.assertRaises(Exception):
-      build_command_gnt_instance_list('test', headers={})
+  def test_build_gnt_instance_list_arguments_error_headers(self):
+    self.assertEqual(
+      build_gnt_instance_list_arguments('test', header_names=None),
+      gnt_instance_list_base + 
+      [merge_alias_headers(field_headers)] +
+      ['test']
+    )
 
 if __name__ == '__main__':
     unittest.main()

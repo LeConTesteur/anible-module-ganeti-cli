@@ -7,18 +7,11 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type # pylint: disable=invalid-name
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_module_ganeti_cli.module_utils.ganeti_instance_list_cli import (
-    run_gnt_instance_list,
+from ansible_module_ganeti_cli.module_utils.gnt_instance_list import (
     get_keys_to_change_module_params_and_result
 )
 from ansible_module_ganeti_cli.module_utils.arguments_spec import ganeti_instance_args_spec
-from ansible_module_ganeti_cli.module_utils.gnt_commands import (
-    run_gnt_instance_add,
-    run_gnt_instance_reboot,
-    run_gnt_instance_remove,
-    run_gnt_instance_stop,
-    run_gnt_instance_modify
-)
+from ansible_module_ganeti_cli.module_utils.gnt_instance import GntInstance
 
 
 DOCUMENTATION = r'''
@@ -124,6 +117,8 @@ def main():
     def error_function(code, stdout, stderr, msg=None):
         module.fail_json(msg=msg, code=code, stdout=stdout, stderr=stderr)
 
+    gnt_instance = GntInstance(module.run_command, error_function)
+
     def vm_is_present_on_remote(name:str, vm_info):
         return vm_info is not None and vm_info['name'] == name
 
@@ -132,11 +127,7 @@ def main():
             return next(
                 filter(
                     lambda x: x.get('name') == name,
-                    run_gnt_instance_list(
-                        name,
-                        runner=module.run_command,
-                        error_function=error_function
-                    )
+                    gnt_instance.list(name)
                 )
             )
         except StopIteration:
@@ -146,44 +137,34 @@ def main():
         return len(get_keys_to_change_module_params_and_result(options, remote)) > 0
 
     def create_vm(name:str, vm_params):
-        return run_gnt_instance_add(
+        return gnt_instance.add(
             name,
-            vm_params,
-            is_create=True,
-            runner=module.run_command,
-            error_function=error_function
+            vm_params
         )
 
     def modify_vm(name:str, vm_params):
         disk_count = len(vm_params.get('disks',[]) or [])
         nic_count = len(vm_params.get('nics',[]) or [])
-        return run_gnt_instance_modify(
+        return gnt_instance.modify(
             name,
             vm_params,
             actual_disk_count=disk_count,
-            actual_nic_count=nic_count,
-            runner=module.run_command,
-            error_function=error_function)
+            actual_nic_count=nic_count
+        )
 
     def reboot_vm(name:str):
-        return run_gnt_instance_reboot(
-            name,
-            runner=module.run_command,
-            error_function=error_function
+        return gnt_instance.reboot(
+            name
         )
 
     def stop_vm(name:str = False):
-        return run_gnt_instance_stop(
-            name,
-            runner=module.run_command,
-            error_function=error_function
+        return gnt_instance.stop(
+            name
         )
 
     def remove_vm(name:str):
-        return run_gnt_instance_remove(
-            name,
-            runner=module.run_command,
-            error_function=error_function
+        return gnt_instance.remove(
+            name
         )
 
     # if present expected

@@ -2,7 +2,7 @@ import json
 
 import functools
 import unittest
-from unittest.mock import patch, DEFAULT
+from unittest.mock import patch, Mock
 from ansible.module_utils import basic
 from ansible.module_utils.common.text.converters import to_bytes
 from ansible_module_ganeti_cli.library.ganeti_instance_cli import main
@@ -40,9 +40,6 @@ def run_gnt_instance_list(name, *args, **kwargs):
         'name': name,
     }
 
-def run_gnt_instance_cmd(name, *args, **kwargs):
-    pass
-
 class TestMainGanetiInstanceCli(unittest.TestCase):
 
     def _assertChanged(self, result):
@@ -58,57 +55,30 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
         self.mock_module_helper = patch.multiple(basic.AnsibleModule,
                                                  exit_json=exit_json,
                                                  fail_json=fail_json)
-        self.mock_ganeti_command_helper = patch.multiple(
-                                                'ansible_module_ganeti_cli.library.ganeti_instance_cli',
-                                                run_gnt_instance_add=run_gnt_instance_cmd,
-                                                run_gnt_instance_reboot=run_gnt_instance_cmd,
-                                                run_gnt_instance_stop=run_gnt_instance_cmd,
-                                                run_gnt_instance_remove=run_gnt_instance_cmd,
-                                                run_gnt_instance_modify=run_gnt_instance_cmd
+        self.mock_gnt_instance_helper = patch(
+            'ansible_module_ganeti_cli.library.ganeti_instance_cli.GntInstance',
+            autospec=True
         )
         self.mock_module_helper.start()
-        self.mock_ganeti_command_helper.start()
-        self.addCleanup(self.mock_ganeti_command_helper.stop)
+        self.mock_gnt_instance = self.mock_gnt_instance_helper.start()
+        self.mock_instance = self.mock_gnt_instance.return_value
+        self.addCleanup(self.mock_gnt_instance_helper.stop)
         self.addCleanup(self.mock_module_helper.stop)
-
-        func_name = 'ansible_module_ganeti_cli.library.ganeti_instance_cli.{}'
-
-        self.patch_run_gnt_list = patch(func_name.format('run_gnt_instance_list'))
-        self.patch_run_gnt_stop = patch(func_name.format('run_gnt_instance_stop'))
-        self.patch_run_gnt_remove = patch(func_name.format('run_gnt_instance_remove'))
-        self.patch_run_gnt_modify = patch(func_name.format('run_gnt_instance_modify'))
-        self.patch_run_gnt_add = patch(func_name.format('run_gnt_instance_add'))
-        self.patch_run_gnt_reboot = patch(func_name.format('run_gnt_instance_reboot'))
-
-        self.run_gnt_list = self.patch_run_gnt_list.start()
-        self.run_gnt_stop = self.patch_run_gnt_stop.start()
-        self.run_gnt_remove = self.patch_run_gnt_remove.start()
-        self.run_gnt_modify = self.patch_run_gnt_modify.start()
-        self.run_gnt_add = self.patch_run_gnt_add.start()
-        self.run_gnt_reboot = self.patch_run_gnt_reboot.start()
-
-        self.addCleanup(self.patch_run_gnt_list.stop)
-        self.addCleanup(self.patch_run_gnt_stop.stop)
-        self.addCleanup(self.patch_run_gnt_remove.stop)
-        self.addCleanup(self.patch_run_gnt_modify.stop)
-        self.addCleanup(self.patch_run_gnt_add.stop)
-        self.addCleanup(self.patch_run_gnt_reboot.stop)
-
 
     # pylint: disable=too-many-arguments
     def _call_test(self, module_args, vm_info, have_change=True, info_call=1, reboot_call=0, add_call=0, stop_call=0, modify_call=0, remove_call=0):
         set_module_args(module_args)
 
-        self.run_gnt_list.return_value = vm_info
+        self.mock_instance.list = Mock(return_value=vm_info)
         with self.assertRaises(AnsibleExitJson) as result:
             main()
         self._assertChangedEqual(result, have_change)
-        self.assertEqual(self.run_gnt_list.call_count, info_call)
-        self.assertEqual(self.run_gnt_reboot.call_count, reboot_call)
-        self.assertEqual(self.run_gnt_add.call_count, add_call)
-        self.assertEqual(self.run_gnt_stop.call_count, stop_call)
-        self.assertEqual(self.run_gnt_remove.call_count, remove_call)
-        self.assertEqual(self.run_gnt_modify.call_count, modify_call)
+        self.assertEqual(self.mock_instance.list.call_count, info_call)
+        self.assertEqual(self.mock_instance.reboot.call_count, reboot_call)
+        self.assertEqual(self.mock_instance.add.call_count, add_call)
+        self.assertEqual(self.mock_instance.stop.call_count, stop_call)
+        self.assertEqual(self.mock_instance.remove.call_count, remove_call)
+        self.assertEqual(self.mock_instance.modify.call_count, modify_call)
 
     def test_module_fail_when_required_args_missing(self):
         with self.assertRaises(AnsibleFailJson):
@@ -123,13 +93,13 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
         })
 
 
-        self.run_gnt_list.return_value = [{'name': 'vm_test2', 'admin_state':'down'}]
+        self.mock_instance.list.return_value = [{'name': 'vm_test2', 'admin_state':'down'}]
         with self.assertRaises(AnsibleFailJson):
             main()
-        self.assertEqual(self.run_gnt_list.call_count, 1)
-        self.assertEqual(self.run_gnt_reboot.call_count, 0)
-        self.assertEqual(self.run_gnt_add.call_count, 0)
-        self.assertEqual(self.run_gnt_modify.call_count, 0)
+        self.assertEqual(self.mock_instance.list.call_count, 1)
+        self.assertEqual(self.mock_instance.reboot.call_count, 0)
+        self.assertEqual(self.mock_instance.add.call_count, 0)
+        self.assertEqual(self.mock_instance.modify.call_count, 0)
 
     def test_stop_and_remove_if_expected_absent_and_exist(self):
         self._call_test({

@@ -5,14 +5,8 @@ import ast
 from itertools import chain
 from typing import Dict, List
 from collections import OrderedDict
-from functools import partial
 import flatdict
 
-
-from ansible_module_ganeti_cli.module_utils.gnt_commands import (
-    build_gnt_instance_list,
-    run_ganeti_cmd
-)
 from ansible_module_ganeti_cli.module_utils.arguments_spec import ganeti_instance_args_spec
 
 
@@ -259,43 +253,34 @@ def get_alias(gnt_list_option):
     """
     return gnt_list_option.alias
 
+def merge_alias_headers(headers:Dict[str, GntListOption]):
+    """
+    Merge all alias from headers
+    """
+    return ','.join(
+        map(get_alias, headers.values())
+    )
 
-def build_command_gnt_instance_list(
-        *names: List[str],
-        headers: Dict[str, GntListOption] = None
-    ) -> str:
+def build_gnt_instance_list_arguments(*names:List[str], header_names:List[str]):
     """Run gnt-instance list. Get all information on instances.
 
     Args:
         names (list[str]): name of instances to view
-        headers (Dict[str, GntListOption], optional): Column to view for instances.
+        header_names (List[str]): Column to view for instances.
             Defaults to None.
-
-    Raises:
-        Exception: if no headers
 
     Returns:
         str: The return of command
     """
-    if headers is None:
-        headers = field_headers
+    headers = field_headers if not header_names else subheaders(*header_names)
     if len(headers) == 0:
         raise Exception("Must be have headers")
-    filter_options = ','.join(
-        map(get_alias, headers.values())
-    )
+    filter_options = merge_alias_headers(headers)
 
-    return build_gnt_instance_list(*[
+    return [
         '--no-headers',
         "--separator='{}'".format(SEPARATOR_COL),
         "--output",
         filter_options,
-        *names
-    ])
-
-
-run_gnt_instance_list = partial(
-    run_ganeti_cmd,
-    builder=build_command_gnt_instance_list,
-    parser=parse_ganeti_list_output
-)
+        *names,
+    ]
