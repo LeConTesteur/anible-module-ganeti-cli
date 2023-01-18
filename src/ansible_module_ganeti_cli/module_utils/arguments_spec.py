@@ -1,6 +1,13 @@
 """
 Module contains the arguments spec of gnt-instance module
 """
+from collections import UserDict
+
+
+MAX_NICS = 8
+MAX_DISKS = 8
+
+
 def copy_options_nth(options, parent_gnt_list_prefix, number=8):
     """
     Copy nth the spec for list options
@@ -21,48 +28,171 @@ def copy_options_nth(options, parent_gnt_list_prefix, number=8):
         for index in range(number)
     ]
 
+class ArgumentSpec(UserDict):
+    """Class ArgumentSpec like Dict for generate easily gnt_instance list or
+       gnt command's options
+
+    Args:
+        UserDict ([str, Any]): ArgSpec dictionnary
+    """
+    def __init__(self, name=None, gnt_list_ignore=False,gnt_list_field=None, **kwargs):
+        super().__init__(**kwargs)
+        self._gnt_list_field = gnt_list_field
+        self._parent = None
+        self._name = name
+        self.gnt_list_ignore = gnt_list_ignore
+        for key, value in self.data.items():
+            if hasattr(value, 'parent'):
+                value.parent = self
+            if hasattr(value, 'name') and not value.name:
+                value.name = key
+
+    @property
+    def gnt_list_field(self) -> str:
+        """Get the name of gnt-instance list field
+
+        Returns:
+            str: the name
+        """
+        return self._gnt_list_field or self.name
+
+    def format(self, _:int=None):
+        """Get the complexe name of gnt-instance list field
+
+        Returns:
+            str: the name
+        """
+        return self.gnt_list_field
+
+    @property
+    def name(self) -> str:
+        """The name of argspec
+
+        Returns:
+            str: The name
+        """
+        return self._name
+
+    @name.setter
+    def name(self, value: str):
+        """Set the name of argspec
+
+        Args:
+            value (str): The name
+        """
+        self._name = value
+
+    @property
+    def parent(self):
+        """Get tthe parent of instance
+
+        Returns:
+            Self: the parent
+        """
+        return self._parent
+
+    @parent.setter
+    def parent(self, value):
+        """Set the parent
+
+        Args:
+            value (Self): The parent
+        """
+        self._parent = value
+
+
+class ArgumentSubSpec(ArgumentSpec):
+    """Argspec for suboptions
+
+    Args:
+        ArgumentSpec (_type_):
+    """
+    def format(self, _:int = None):
+        return "{parent}/{name}".format(
+            parent=self.parent.gnt_list_field,
+            name=self.gnt_list_field
+        )
+
+class ArgumentListSpec(ArgumentSpec):
+    """Argument List int arg spec
+
+    Args:
+        ArgumentSpec (_type_):
+    """
+    def __init__(self, gnt_list_count=0, **kwargs):
+        super().__init__(**kwargs)
+        self.count = gnt_list_count
+
+class ArgumentListElementSpec(ArgumentSpec):
+    """Element of arguement List
+
+    Args:
+        ArgumentSpec (_type_):
+    """
+    def format(self, index:int = None):
+        if not index >= 0:
+            raise ValueError('Index must be positive')
+        return "{parent}.{name}/{index}".format(
+            parent=self.parent.gnt_list_field,
+            name=self.gnt_list_field,
+            index=index
+        )
+
 disk_templates = ['sharedfile', 'diskless', 'plain', 'gluster', 'blockdev',
                     'drbd', 'ext', 'file', 'rbd']
 hypervisor_choices = ['chroot', 'xen-pvm', 'kvm', 'xen-hvm', 'lxc', 'fake']
 nic_types_choices = ['bridged', 'openvswitch']
-nics_options = dict(
-    name=dict(type="str", require=True,),
-    mode=dict(type="str", require=False, default=nic_types_choices[0], choices=nic_types_choices),
-    vlan=dict(type="int", require=False),
-    network=dict(type="str", require=False),
-    mac=dict(type="str", require=False),
-    link=dict(type="str", require=False),
-    ip=dict(type="str", require=False),
+nics_options = ArgumentListSpec(
+    name=ArgumentListElementSpec(type="str", require=True,),
+    mode=ArgumentListElementSpec(
+        type="str",
+        require=False,
+        default=nic_types_choices[0],
+        choices=nic_types_choices
+    ),
+    vlan=ArgumentListElementSpec(type="int", require=False),
+    network=ArgumentListElementSpec(type="str", require=False),
+    mac=ArgumentListElementSpec(type="str", require=False),
+    link=ArgumentListElementSpec(type="str", require=False),
+    ip=ArgumentListElementSpec(type="str", require=False),
+    gnt_list_field='nic',
+    gnt_list_count=MAX_NICS
 )
-disks_options = dict(
-    name=dict(type="str", require=True),
-    size=dict(type="int", require=True),
-    spindles=dict(type="str", require=False),
-    vg=dict(type="str", require=False, gnt_list_ignore=True),
-    metavg=dict(type="str", require=False, gnt_list_ignore=True),
-    access=dict(type="str", require=False, gnt_list_ignore=True),
+disks_options = ArgumentListSpec(
+    name=ArgumentListElementSpec(type="str", require=True),
+    size=ArgumentListElementSpec(type="int", require=True),
+    spindles=ArgumentListElementSpec(type="str", require=False),
+    vg=ArgumentListElementSpec(type="str", require=False, gnt_list_ignore=True),
+    metavg=ArgumentListElementSpec(type="str", require=False, gnt_list_ignore=True),
+    access=ArgumentListElementSpec(type="str", require=False, gnt_list_ignore=True),
+    gnt_list_field='disk',
+    gnt_list_count=MAX_DISKS
 )
-backend_param = dict(
-    memory=dict(type='int', required=False, gnt_list_field='be/memory'),
-    vcpus=dict(type='int', required=False, gnt_list_field='be/vcpus'),
+backend_param = ArgumentSpec(
+    memory=ArgumentSubSpec(type='int', required=False),
+    vcpus=ArgumentSubSpec(type='int', required=False),
+    gnt_list_field='be'
 )
 
-hypervisor_params = dict(
-    kernel_args=dict(type='str', required=False, gnt_list_field='hv/kernel_args'),
-    kernel_path=dict(type='str', required=False, gnt_list_field='hv/kernel_path'),
+hypervisor_params = ArgumentSpec(
+    kernel_args=ArgumentSubSpec(type='str', required=False),
+    kernel_path=ArgumentSubSpec(type='str', required=False),
+    gnt_list_field='hv'
 )
+
+
 
 osparams = []
 
 ganeti_instance_args_spec = dict(
-    disk_template=dict(type='str', default='plain', choices=disk_templates),
-    disks=dict(type='list', required=False, options=copy_options_nth(disks_options, 'disk')),
-    hypervisor=dict(type='str', default='kvm', choices=hypervisor_choices),
-    iallocator=dict(type='str', required=False, default='hail', gnt_list_ignore=True),
-    nics=dict(type='list', required=False, options=copy_options_nth(nics_options, 'nic')),
-    os_type=dict(type='str', required=False, gnt_list_field='os'),
+    disk_template=ArgumentSpec(type='str', default='plain', choices=disk_templates),
+    disks=ArgumentSpec(type='list', required=False, options=disks_options),
+    hypervisor=ArgumentSpec(type='str', default='kvm', choices=hypervisor_choices),
+    iallocator=ArgumentSpec(type='str', required=False, default='hail', gnt_list_ignore=True),
+    nics=ArgumentSpec(type='list', required=False, options=nics_options),
+    os_type=ArgumentSpec(type='str', required=False, gnt_list_field='os'),
     #osparams=dict(type='dict', required=False, options=osparams),
-    pnode=dict(type='str', required=False, default=None),
-    hypervisor_params=dict(type='dict', required=False, options=hypervisor_params),
-    backend_param=dict(type='dict', required=False, options=backend_param),
+    pnode=ArgumentSpec(type='str', required=False, default=None),
+    hypervisor_params=ArgumentSpec(type='dict', required=False, options=hypervisor_params),
+    backend_param=ArgumentSpec(type='dict', required=False, options=backend_param),
 )

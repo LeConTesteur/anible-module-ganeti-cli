@@ -48,21 +48,23 @@ SEPARATOR_COL = '--##'
 # print(ganeti_instance_args_spec)
 
 
-def args_spec_to_field_headers(args_spec: dict) -> dict:
+def args_spec_to_field_headers(args_spec: dict, index:int=None) -> dict:
     """
     Convert ganeti instance arguments spec to field headers
     """
     headers = {}
     for name, spec in args_spec.items():
-        if spec.get('gnt_list_ignore', False):
+        if spec.gnt_list_ignore:
             continue
         if spec['type'] == 'dict':
             headers[name] = args_spec_to_field_headers(spec['options'])
         elif spec['type'] == 'list':
-            headers[name] = [args_spec_to_field_headers(s) for s in spec['options']]
+            headers[name] = [
+                args_spec_to_field_headers(spec['options'], index)
+                for index in range(spec['options'].count)
+            ]
         else:
-            headers[name] = GntListOption(
-                spec.get('gnt_list_field', name), spec['type'])
+            headers[name] = GntListOption(spec.format(index) or name, spec['type'])
     return headers
 
 
@@ -92,7 +94,6 @@ field_headers = OrderedDict(
     sorted(chain(fix_field_headers.items(),
            ganeti_instance_args_spec_flat_items()), key=lambda x: x[0])
 )
-
 
 def subheaders(*header_names):
     """
