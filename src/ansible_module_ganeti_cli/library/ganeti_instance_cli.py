@@ -4,7 +4,7 @@ ansible gnt-instance module
 """
 
 from __future__ import (absolute_import, division, print_function)
-__metaclass__ = type # pylint: disable=invalid-name
+__metaclass__ = type  # pylint: disable=invalid-name
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_module_ganeti_cli.module_utils.gnt_instance_list import (
@@ -81,48 +81,43 @@ message:
 # define available arguments/parameters a user can pass to the module
 state_choices = ['present', 'absent']
 admin_state_choices = ['restarted', 'started', 'stopped']
-module_args = dict(
-    name=dict(type='str', required=True,aliases=['instance_name']),
-    state=dict(type='str', required=False, default='present', choises=state_choices),
-    params=dict(type='dict', required=False, options=ganeti_instance_args_spec),
-    admin_state=dict(type='str', required=False, default='started', choises=admin_state_choices),
-    reboot_if_change=dict(type='bool', required=False, default=False),
-)
+module_args = {
+    "name": {"type":'str', "required":True, "aliases":['instance_name']},
+    "state": {"type":'str', "required":False, "default":'present', "choises":state_choices},
+    "params": {"type":'dict', "required":False, "options":ganeti_instance_args_spec},
+    "admin_state": {
+        "type":'str', "required":False, "default":'started', "choises":admin_state_choices
+    },
+    "reboot_if_change": {"type":'bool', "required":False, "default":False},
+}
 
-def main():
-    """
-    Main function
-    """
 
+def main_with_module(module: AnsibleModule) -> None:
+    """Main function with module parameter
+
+    Args:
+        module (AnsibleModule): Ansible Module
+    """
     # seed the result dict in the object
     # we primarily care about changed and state
     # changed is if this module effectively modified the target
     # state will include any data that you want your module to pass back
     # for consumption, for example, in a subsequent task
-    result = dict(
-        changed=False,
-        original_message='',
-        message=''
-    )
-
-    # the AnsibleModule object will be our abstraction working with Ansible
-    # this includes instantiation, a couple of common attr would be the
-    # args/params passed to the execution, as well as if the module
-    # supports check mode
-    module = AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True
-    )
+    result = {
+        "changed":False,
+        "original_message":'',
+        "message":''
+    }
 
     def error_function(code, stdout, stderr, msg=None):
         module.fail_json(msg=msg, code=code, stdout=stdout, stderr=stderr)
 
     gnt_instance = GntInstance(module.run_command, error_function)
 
-    def vm_is_present_on_remote(name:str, vm_info):
+    def vm_is_present_on_remote(name: str, vm_info):
         return vm_info is not None and vm_info['name'] == name
 
-    def get_vm_info(name:str):
+    def get_vm_info(name: str):
         try:
             return next(
                 filter(
@@ -136,15 +131,15 @@ def main():
     def have_vm_change(options, remote):
         return len(get_keys_to_change_module_params_and_result(options, remote)) > 0
 
-    def create_vm(name:str, vm_params):
+    def create_vm(name: str, vm_params):
         return gnt_instance.add(
             name,
             vm_params
         )
 
-    def modify_vm(name:str, vm_params):
-        disk_count = len(vm_params.get('disks',[]) or [])
-        nic_count = len(vm_params.get('nics',[]) or [])
+    def modify_vm(name: str, vm_params):
+        disk_count = len(vm_params.get('disks', []) or [])
+        nic_count = len(vm_params.get('nics', []) or [])
         return gnt_instance.modify(
             name,
             vm_params,
@@ -152,17 +147,17 @@ def main():
             actual_nic_count=nic_count
         )
 
-    def reboot_vm(name:str):
+    def reboot_vm(name: str):
         return gnt_instance.reboot(
             name
         )
 
-    def stop_vm(name:str = False):
+    def stop_vm(name: str = False):
         return gnt_instance.stop(
             name
         )
 
-    def remove_vm(name:str):
+    def remove_vm(name: str):
         return gnt_instance.remove(
             name
         )
@@ -182,7 +177,8 @@ def main():
     vm_info = get_vm_info(vm_name)
     if module.params['state'] == 'present':
         if not vm_is_present_on_remote(vm_name, vm_info) and not module.params['params']:
-            module.fail_json(msg='The params of VM must be present if VM does\'t exist')
+            module.fail_json(
+                msg='The params of VM must be present if VM does\'t exist')
 
         if not vm_is_present_on_remote(vm_name, vm_info):
             create_vm(vm_name, module.params['params'])
@@ -191,11 +187,11 @@ def main():
             modify_vm(vm_name, module.params['params'])
             result['changed'] = True
         if module.params['admin_state'] == 'restarted' or \
-            module.params['admin_state'] == 'started' and result['changed'] or \
-            module.params['admin_state'] == 'started' and vm_info['admin_state'] !='up':
+                module.params['admin_state'] == 'started' and result['changed'] or \
+                module.params['admin_state'] == 'started' and vm_info['admin_state'] != 'up':
             reboot_vm(vm_name)
             result['changed'] = True
-        elif module.params['admin_state'] == 'stopped' and vm_info['admin_state'] !='down':
+        elif module.params['admin_state'] == 'stopped' and vm_info['admin_state'] != 'down':
             stop_vm(vm_name)
             result['changed'] = True
     if module.params['state'] == 'absent':
@@ -212,6 +208,27 @@ def main():
 
     # simple AnsibleModule.exit_json(), passing the key/value results
     module.exit_json(**result)
+
+
+def main(catch_exception: bool = True):
+    """
+    Main function
+    """
+
+    # the AnsibleModule object will be our abstraction working with Ansible
+    # this includes instantiation, a couple of common attr would be the
+    # args/params passed to the execution, as well as if the module
+    # supports check mode
+    module = AnsibleModule(
+        argument_spec=module_args,
+        supports_check_mode=True
+    )
+    try:
+        main_with_module(module)
+    except Exception as exception:
+        if catch_exception:
+            module.fail_json(msg=str(exception))
+        raise
 
 
 if __name__ == '__main__':

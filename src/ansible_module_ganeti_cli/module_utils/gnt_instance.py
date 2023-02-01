@@ -8,8 +8,9 @@ from ansible_module_ganeti_cli.module_utils.gnt_command import (
   build_gnt_instance_add_single_options,
   build_dict_options_with_prefix,
   build_prefixes_from_count_diff,
+  build_gnt_instance_state_options,
   PrefixStr,
-  PrefixAdd
+  PrefixIndex
 )
 from ansible_module_ganeti_cli.module_utils.gnt_instance_list import (
   build_gnt_instance_list_arguments,
@@ -69,7 +70,7 @@ class GntInstance(GntCommand):
             command='remove'
         )
 
-    def list(self, *names:List[str], header_names: List[str] = None):
+    def list(self, *names:List[str], header_names: List[str] = None) -> List:
         """Run gnt-instance list. Get all information on instances.
 
         Args:
@@ -91,25 +92,27 @@ class GntInstance(GntCommand):
         Run command: gnt-instance add
         """
         return self._run_command(
+            *build_gnt_instance_state_options(params),
             *build_gnt_instance_add_single_options(params),
-            *build_dict_options_with_prefix(params['backend_param'], 'backend-parameters'),
-            *build_dict_options_with_prefix(
-                params['hypervisor_param'],
+            build_dict_options_with_prefix(params.get('backend_param'), 'backend-parameters'),
+            build_dict_options_with_prefix(
+                params.get('hypervisor_param'),
                 'hypervisor-parameters',
                 prefixes=PrefixStr(params['hypervisor'])
             ),
-            *build_dict_options_with_prefix(params['os_params'], 'os-parameters'),
-            *build_dict_options_with_prefix(
-                    params['nics'],
+            build_dict_options_with_prefix(params.get('os_params'), 'os-parameters'),
+            build_dict_options_with_prefix(
+                    params.get('nics'),
                     'net',
-                    prefixes=PrefixAdd()
+                    prefixes=PrefixIndex()
             ),
-            *build_dict_options_with_prefix(
-                    params['disks'],
+            build_dict_options_with_prefix(
+                    params.get('disks'),
                     'disk',
-                    prefixes=PrefixAdd()
+                    prefixes=PrefixIndex()
             ),
-            name
+            name,
+            command='add'
         )
 
     def modify(self, name:str, params: dict, actual_disk_count:int, actual_nic_count:int):

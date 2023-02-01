@@ -181,7 +181,7 @@ def parse_boolean(value: str):
         return True
     if value.lower() == 'n':
         return False
-    raise Exception(
+    raise ValueError(
         'Boolean value must be "y" or "Y" or "N" or "n", not : {}'.format(value))
 
 def parse_int(value: str):
@@ -275,7 +275,7 @@ def build_gnt_instance_list_arguments(*names:List[str], header_names:List[str]):
     """
     headers = field_headers if not header_names else subheaders(*header_names)
     if len(headers) == 0:
-        raise Exception("Must be have headers")
+        raise ValueError("Must be have headers")
     filter_options = merge_alias_headers(headers)
 
     return [

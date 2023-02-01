@@ -14,19 +14,20 @@ def copy_options_nth(options, parent_gnt_list_prefix, number=8):
     """
     return [
         {
-            o_k:dict(
+            o_k: {
                 **o_v,
-                gnt_list_field="{prefix}.{name}/{index}".format(
+                'gnt_list_field':"{prefix}.{name}/{index}".format(
                     prefix=parent_gnt_list_prefix,
                     name=o_v.get('gnt_list_field_name', o_k),
                     index=index
                 )
-            )
+            }
             for o_k, o_v in options.items()
             if not o_v.get('gnt_list_ignore', False)
         }
         for index in range(number)
     ]
+
 
 class ArgumentSpec(UserDict):
     """Class ArgumentSpec like Dict for generate easily gnt_instance list or
@@ -35,7 +36,8 @@ class ArgumentSpec(UserDict):
     Args:
         UserDict ([str, Any]): ArgSpec dictionnary
     """
-    def __init__(self, name=None, gnt_list_ignore=False,gnt_list_field=None, **kwargs):
+
+    def __init__(self, name=None, gnt_list_ignore=False, gnt_list_field=None, **kwargs):
         super().__init__(**kwargs)
         self._gnt_list_field = gnt_list_field
         self._parent = None
@@ -56,7 +58,7 @@ class ArgumentSpec(UserDict):
         """
         return self._gnt_list_field or self.name
 
-    def format(self, _:int=None):
+    def format(self, _: int = None):
         """Get the complexe name of gnt-instance list field
 
         Returns:
@@ -107,11 +109,13 @@ class ArgumentSubSpec(ArgumentSpec):
     Args:
         ArgumentSpec (_type_):
     """
-    def format(self, _:int = None):
+
+    def format(self, _: int = None):
         return "{parent}/{name}".format(
             parent=self.parent.gnt_list_field,
             name=self.gnt_list_field
         )
+
 
 class ArgumentListSpec(ArgumentSpec):
     """Argument List int arg spec
@@ -119,9 +123,11 @@ class ArgumentListSpec(ArgumentSpec):
     Args:
         ArgumentSpec (_type_):
     """
+
     def __init__(self, gnt_list_count=0, **kwargs):
         super().__init__(**kwargs)
         self.count = gnt_list_count
+
 
 class ArgumentListElementSpec(ArgumentSpec):
     """Element of arguement List
@@ -129,7 +135,8 @@ class ArgumentListElementSpec(ArgumentSpec):
     Args:
         ArgumentSpec (_type_):
     """
-    def format(self, index:int = None):
+
+    def format(self, index: int = None):
         if not index >= 0:
             raise ValueError('Index must be positive')
         return "{parent}.{name}/{index}".format(
@@ -138,8 +145,9 @@ class ArgumentListElementSpec(ArgumentSpec):
             index=index
         )
 
+
 disk_templates = ['sharedfile', 'diskless', 'plain', 'gluster', 'blockdev',
-                    'drbd', 'ext', 'file', 'rbd']
+                  'drbd', 'ext', 'file', 'rbd']
 hypervisor_choices = ['chroot', 'xen-pvm', 'kvm', 'xen-hvm', 'lxc', 'fake']
 nic_types_choices = ['bridged', 'openvswitch']
 nics_options = ArgumentListSpec(
@@ -162,9 +170,12 @@ disks_options = ArgumentListSpec(
     name=ArgumentListElementSpec(type="str", require=True),
     size=ArgumentListElementSpec(type="int", require=True),
     spindles=ArgumentListElementSpec(type="str", require=False),
-    vg=ArgumentListElementSpec(type="str", require=False, gnt_list_ignore=True),
-    metavg=ArgumentListElementSpec(type="str", require=False, gnt_list_ignore=True),
-    access=ArgumentListElementSpec(type="str", require=False, gnt_list_ignore=True),
+    vg=ArgumentListElementSpec(
+        type="str", require=False, gnt_list_ignore=True),
+    metavg=ArgumentListElementSpec(
+        type="str", require=False, gnt_list_ignore=True),
+    access=ArgumentListElementSpec(
+        type="str", require=False, gnt_list_ignore=True),
     gnt_list_field='disk',
     gnt_list_count=MAX_DISKS
 )
@@ -181,18 +192,24 @@ hypervisor_params = ArgumentSpec(
 )
 
 
-
 osparams = []
 
-ganeti_instance_args_spec = dict(
-    disk_template=ArgumentSpec(type='str', default='plain', choices=disk_templates),
-    disks=ArgumentSpec(type='list', required=False, options=disks_options),
-    hypervisor=ArgumentSpec(type='str', default='kvm', choices=hypervisor_choices),
-    iallocator=ArgumentSpec(type='str', required=False, default='hail', gnt_list_ignore=True),
-    nics=ArgumentSpec(type='list', required=False, options=nics_options),
-    os_type=ArgumentSpec(type='str', required=False, gnt_list_field='os'),
+ganeti_instance_args_spec = {
+    "disk_template":ArgumentSpec(
+        type='str', default='plain', choices=disk_templates),
+    "disks":ArgumentSpec(type='list', required=False, options=disks_options),
+    "hypervisor":ArgumentSpec(type='str', default='kvm',
+                            choices=hypervisor_choices),
+    "iallocator":ArgumentSpec(type='str', required=False,
+                            default='hail', gnt_list_ignore=True),
+    "nics":ArgumentSpec(type='list', required=False, options=nics_options),
+    "os_type":ArgumentSpec(type='str', required=False, gnt_list_field='os'),
     #osparams=dict(type='dict', required=False, options=osparams),
-    pnode=ArgumentSpec(type='str', required=False, default=None),
-    hypervisor_params=ArgumentSpec(type='dict', required=False, options=hypervisor_params),
-    backend_param=ArgumentSpec(type='dict', required=False, options=backend_param),
-)
+    "pnode":ArgumentSpec(type='str', required=False, default=None),
+    "hypervisor_params":ArgumentSpec(
+        type='dict', required=False, options=hypervisor_params),
+    "backend_param":ArgumentSpec(
+        type='dict', required=False, options=backend_param),
+    "name_check":ArgumentSpec(type='bool', default=False, gnt_list_ignore=True),
+    "ip_check":ArgumentSpec(type='bool', default=False, gnt_list_ignore=True),
+}

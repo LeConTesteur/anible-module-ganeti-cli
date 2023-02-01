@@ -13,7 +13,9 @@
       - restart sshd
   - name: Install ganeti
     ansible.builtin.apt:
-      name: ganeti
+      name:
+        - ganeti
+        - ganeti-os-noop
       state: present
       update_cache: yes
   - name: create bridge

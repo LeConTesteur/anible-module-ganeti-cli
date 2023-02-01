@@ -71,7 +71,7 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
 
         self.mock_instance.list = Mock(return_value=vm_info)
         with self.assertRaises(AnsibleExitJson) as result:
-            main()
+            main(catch_exception=False)
         self._assertChangedEqual(result, have_change)
         self.assertEqual(self.mock_instance.list.call_count, info_call)
         self.assertEqual(self.mock_instance.reboot.call_count, reboot_call)
@@ -83,7 +83,7 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
     def test_module_fail_when_required_args_missing(self):
         with self.assertRaises(AnsibleFailJson):
             set_module_args({})
-            main()
+            main(catch_exception=False)
 
     def test_restarted_if_expected_present_and_not_exist_and_without_params(self):
         set_module_args({
@@ -95,7 +95,7 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
 
         self.mock_instance.list.return_value = [{'name': 'vm_test2', 'admin_state':'down'}]
         with self.assertRaises(AnsibleFailJson):
-            main()
+            main(catch_exception=False)
         self.assertEqual(self.mock_instance.list.call_count, 1)
         self.assertEqual(self.mock_instance.reboot.call_count, 0)
         self.assertEqual(self.mock_instance.add.call_count, 0)

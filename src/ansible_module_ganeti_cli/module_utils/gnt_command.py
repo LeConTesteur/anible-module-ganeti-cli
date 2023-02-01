@@ -16,6 +16,9 @@ def build_ganeti_cmd(*args:List[str], binary:str, cmd:str) -> str:
         args_merged=" ".join(args)
     )
 
+class RunCommandException(Exception):
+    """Exception after run_command"""
+
 def run_ganeti_cmd(
         *args,
         builder: Callable,
@@ -34,12 +37,14 @@ def run_ganeti_cmd(
         msg='Command "{}" failed'.format(cmd)
         if error_function:
             return error_function(code, stdout, stderr, msg=msg)
-        raise Exception("{msg} with (code={code}, stdout={stdout}, stderr={stderr})".format(
-            msg=msg,
-            code=code,
-            stdout=stdout,
-            stderr=stderr
-        ))
+        raise RunCommandException(
+            "{msg} with (code={code}, stdout={stdout}, stderr={stderr})".format(
+                msg=msg,
+                code=code,
+                stdout=stdout,
+                stderr=stderr
+            )
+        )
     return parser(*args, stdout=stdout, **kwargs)
 
 def build_dict_to_options(values: dict):
@@ -61,6 +66,7 @@ class PrefixTypeEnum(Enum):
     ADD = 2
     REMOVE = 3
     STR = 4
+    INDEX = 5
 
 class Prefix:
     """
@@ -70,7 +76,7 @@ class Prefix:
     def __init__(self, prefix:str=None) -> None:
         self._prefix = prefix
         if self._type == PrefixTypeEnum.STR and not self.prefix:
-            raise Exception('Prefix can\'t be None when Type is STR')
+            raise ValueError('Prefix can\'t be None when Type is STR')
 
     @property
     def type(self) -> PrefixTypeEnum:
@@ -123,6 +129,12 @@ class PrefixStr(Prefix):
     """
     _type = PrefixTypeEnum.STR
 
+class PrefixIndex(Prefix):
+    """
+    Prefix Index
+    """
+    _type = PrefixTypeEnum.INDEX
+
 def format_prefix(prefix: Prefix, index: int) -> str:
     """Build prefix string
 
@@ -136,6 +148,7 @@ def format_prefix(prefix: Prefix, index: int) -> str:
     """
     return {
         PrefixTypeEnum.NONE: "",
+        PrefixTypeEnum.INDEX: "{}:".format(index),
         PrefixTypeEnum.MODIFY: "{}:modify:".format(index),
         PrefixTypeEnum.ADD: "add:",
         PrefixTypeEnum.REMOVE: "{}:remove".format(index),
@@ -152,7 +165,7 @@ def build_dict_options_with_prefix(
         return ""
 
     if not option_name:
-        raise Exception('Missing option_name')
+        raise ValueError('Missing option_name')
 
     if not prefixes:
         prefixes = [PrefixNone()]
@@ -169,6 +182,18 @@ def build_dict_options_with_prefix(
         ]
     )
 
+def build_state_option(name:str, value:Any) -> str:
+    """Build option string for one value
+
+    Args:
+        name (str): name of option
+        value (Any): value of option
+
+    Returns:
+        str: the option
+    """
+    return "--no-{}".format(name) if value is not None and not value else ""
+
 def build_single_option(name:str, value:Any) -> str:
     """Build option string for one value
 
@@ -180,6 +205,20 @@ def build_single_option(name:str, value:Any) -> str:
         str: the option
     """
     return "--{}={}".format(name, value) if value is not None else ""
+
+def build_gnt_instance_state_options(params: dict) -> List[str]:
+    """Build all options which are state (--no-*)
+
+    Args:
+        params (dict): Dict of data
+
+    Returns:
+        List[str]: List of option
+    """
+    return [
+        build_state_option("name-check", params['name_check']),
+        build_state_option("ip-check", params['ip_check']),
+    ]
 
 def build_gnt_instance_add_single_options(params: dict) -> List[str]:
     """Build all options which are not list
@@ -217,7 +256,7 @@ def build_prefixes_from_count_diff(expected_count:int, actual_count: int) -> Ite
         return iter([])
 
     if actual_count < 0:
-        raise Exception('Error in remote count')
+        raise ValueError('Error in remote count')
     count_diff = expected_count - actual_count
 
     ret = []
@@ -254,7 +293,9 @@ class GntCommand(ABC):
         self.error_function = error_function
         self.binary = binary
 
-    def _run_command(self, *args, command: str, parser: Callable = None, **kwargs):
+    def _run_command(self,
+                     *args, command: str, parser: Callable = None, return_none_if_error=False,
+                     **kwargs) -> Union[None, Any]:
         """
         Generic runner function for ganeti command
         """
@@ -268,10 +309,12 @@ class GntCommand(ABC):
             msg='Command "{}" failed'.format(cmd)
             if self.error_function:
                 return self.error_function(code, stdout, stderr, msg=msg)
-            raise Exception("{msg} with (code={code}, stdout={stdout}, stderr={stderr})".format(
-                msg=msg,
-                code=code,
-                stdout=stdout,
-                stderr=stderr
-            ))
+            raise RunCommandException(
+                "{msg} with (code={code}, stdout={stdout}, stderr={stderr})".format(
+                    msg=msg,
+                    code=code,
+                    stdout=stdout,
+                    stderr=stderr
+                )
+            )
         return parser(*args, stdout=stdout, **kwargs)
