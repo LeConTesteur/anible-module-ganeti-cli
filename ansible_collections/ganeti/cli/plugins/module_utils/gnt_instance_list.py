@@ -7,7 +7,7 @@ from typing import Dict, List
 from collections import OrderedDict
 import flatdict
 
-from ansible_module_ganeti_cli.module_utils.arguments_spec import ganeti_instance_args_spec
+from ansible_collections.ganeti.cli.plugins.module_utils.arguments_spec import ganeti_instance_args_spec
 
 
 class GntListOption:

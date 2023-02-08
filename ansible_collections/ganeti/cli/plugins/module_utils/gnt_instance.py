@@ -3,7 +3,7 @@ Class GntInstance
 """
 from typing import Callable, List
 
-from ansible_module_ganeti_cli.module_utils.gnt_command import (
+from ansible_collections.ganeti.cli.plugins.module_utils.gnt_command import (
   GntCommand,
   build_gnt_instance_add_single_options,
   build_dict_options_with_prefix,
@@ -12,7 +12,7 @@ from ansible_module_ganeti_cli.module_utils.gnt_command import (
   PrefixStr,
   PrefixIndex
 )
-from ansible_module_ganeti_cli.module_utils.gnt_instance_list import (
+from ansible_collections.ganeti.cli.plugins.module_utils.gnt_instance_list import (
   build_gnt_instance_list_arguments,
   parse_ganeti_list_output
 )

@@ -1,6 +1,6 @@
 import unittest
 
-from ansible_module_ganeti_cli.module_utils.gnt_command import (
+from ansible_collections.ganeti.cli.plugins.module_utils.gnt_command import (
     build_prefixes_from_count_diff,
     build_dict_options_with_prefix,
     PrefixStr,

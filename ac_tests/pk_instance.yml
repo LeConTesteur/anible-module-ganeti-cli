@@ -1,29 +1,8 @@
 - hosts: all
   become: true
   tasks:
-    - name: Test
-      local_action:
-        module: find
-        path: "{{playbook_dir}}/../.tox/.tmp/"
-        pattern: '*.tar.gz'
-        recurse: true
-      register: packages
-      become: false
-    - debug:
-        var: packages
-    - debug:
-        var: packages.files[0].path
-    - name: Install local package
-      block:
-        - copy:
-            src: "{{ packages.files[0].path }}"
-            dest: /tmp/package.tar.gz
-        - pip:
-            name: file:///tmp/package.tar.gz
-            extra_args: --force-reinstall
-
     - name: Create Instance
-      ganeti_instance_cli:
+      ganeti.cli.ganeti_instance_cli:
         name: test
         state: present
         params:

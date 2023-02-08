@@ -5,3 +5,6 @@ __pycache__
 build
 output
 .vagrant
+.vagrant.d
+.ansible
+*.tar.gz

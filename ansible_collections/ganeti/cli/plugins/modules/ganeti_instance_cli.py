@@ -7,11 +7,11 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type  # pylint: disable=invalid-name
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_module_ganeti_cli.module_utils.gnt_instance_list import (
+from ansible_collections.ganeti.cli.plugins.module_utils.gnt_instance_list import (
     get_keys_to_change_module_params_and_result
 )
-from ansible_module_ganeti_cli.module_utils.arguments_spec import ganeti_instance_args_spec
-from ansible_module_ganeti_cli.module_utils.gnt_instance import GntInstance
+from ansible_collections.ganeti.cli.plugins.module_utils.arguments_spec import ganeti_instance_args_spec
+from ansible_collections.ganeti.cli.plugins.module_utils.gnt_instance import GntInstance
 
 
 DOCUMENTATION = r'''
