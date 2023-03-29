@@ -1,0 +1,22 @@
+# interfaces(5) file used by ifup(8) and ifdown(8)
+# Include files from /etc/network/interfaces.d:
+source-directory /etc/network/interfaces.d
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+allow-hotplug {{interface_0_name}}
+iface {{interface_0_name}} inet manual
+
+
+auto br_gnt
+iface br_gnt inet static
+    bridge_ports {{interface_0_name}}
+    bridge_stp off       # disable Spanning Tree Protocol
+    bridge_waitport 0    # no delay before a port becomes available
+    bridge_fd 0          # no forwarding delay
+    address    {{node1_ip}}
+    netmask    {{node1_netmask}}
+    gateway    {{node1_gateway}}
+    post-up ip addr flush {{interface_0_name}}

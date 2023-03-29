@@ -7,10 +7,29 @@
   - name: Enabled password in sshd
     lineinfile:
       path: /etc/ssh/sshd_config
-      regex: '^#PasswordAuthentication'
+      regex: '^#?PasswordAuthentication\s+no'
       line: PasswordAuthentication yes
     notify:
       - restart sshd
+  - name: Install python3 and pip3
+    ansible.builtin.apt:
+      name:
+        - python3
+        - python3-pip
+      state: present
+      update_cache: yes
+  - name: Upgrade pip and setuptools
+    pip:
+      name:
+        - pip
+        - setuptools
+      extra_args: --upgrade
+  - name: Install dependance package
+    pip:
+      name:
+        - pyyaml
+        - flatdict
+      extra_args: --upgrade
   - name: Install ganeti
     ansible.builtin.apt:
       name:
@@ -19,14 +38,39 @@
       state: present
       update_cache: yes
   - name: create bridge
-    copy:
-      src: br_gnt.conf
-      dest: /etc/network/interfaces.d/
+    template:
+      src: br_gnt.j2
+      dest: /etc/network/interfaces
       owner: root
       group: root
       mode: 0644
     notify:
       - restart network
+  - name: Create /root.ssh
+    file:
+      path: /root/.ssh
+      state: directory
+  - name: Send file-storage-paths
+    copy:
+      src: file-storage-paths
+      dest: /etc/ganeti/file-storage-paths
+  # hostname
+  - name: Send hostname
+    copy:
+      src: hostname
+      dest: /etc/hostname
+    notify:
+      - reload hostname
+  - name: send hosts
+    template:
+      src: hosts.j2
+      dest: /etc/hosts
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    node1_ip: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['address']}}"
+    node1_gateway: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['gateway']}}"
+    node1_netmask: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['netmask']}}"
+    node1_interface: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['interface']}}"
   handlers:
     - name: restart network
       ansible.builtin.systemd:
@@ -36,4 +80,6 @@
       ansible.builtin.systemd:
         state: restarted
         name: sshd
+    - name: reload hostname
+      shell: hostname -F /etc/hostname
 

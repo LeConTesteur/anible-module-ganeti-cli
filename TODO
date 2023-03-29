@@ -1,0 +1,8 @@
+ - when have disk or nics can't to 0 during modify (cannot all remove)
+ - append more single options
+ - append option only for modify
+ - gestion version ganeti version?
+ - disk size cannot modify -> warning?
+
+
+

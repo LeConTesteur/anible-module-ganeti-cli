@@ -1,0 +1,30 @@
+- hosts: all
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+    - name: Create Instance
+      ganeti.cli.gnt_instance:
+        name: "create_multi_instances_{{item}}"
+        state: present
+        params:
+          disk-template: file
+          disk:
+            - size: 10G
+            - name: "{{item}}_1"
+              size: 2G
+          os-type: noop
+          name-check: False
+          ip-check: False
+          hypervisor: fake
+          net:
+            - name: "{{item}}_0"
+              link: br_gnt
+              mode: bridged
+            - name: "{{item}}_1"
+              link: br_gnt
+              vlan: 100
+      with_items:
+        - test1
+        - test2
+        - test3

@@ -13,20 +13,21 @@ Vagrant.configure("2") do |config|
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
   #config.vm.box = "debian/buster64"
-  config.vm.define "bullseye64" do |debian|
+  config.vm.define "bullseye" do |debian|
     debian.vm.box = "debian/bullseye64"
   end
 
-  config.vm.define "buster64" do |debian|
+  config.vm.define "buster" do |debian|
     debian.vm.box = "debian/buster64"
   end
 
-  config.vm.define "stretch64" do |debian|
+  config.vm.define "stretch" do |debian|
     debian.vm.box = "debian/stretch64"
   end
 
   config.vm.provider "libvirt" do |libvirt|
-    libvirt.memory = 1024
+    libvirt.memory = 2048
+    libvirt.nic_model_type = 'e1000'
   end
 
   # Disable automatic box update checking. If you disable this, then
@@ -59,8 +60,9 @@ Vagrant.configure("2") do |config|
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
   # config.vm.synced_folder "../data", "/vagrant_data"
+  config.nfs.functional = false
   config.nfs.verify_installed = false
-  config.vm.synced_folder '.', '/vagrant', disabled: true
+  config.vm.synced_folder '.', '/vagrant', disabled: true, nfs_export: false
   
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
@@ -73,7 +75,6 @@ Vagrant.configure("2") do |config|
   #   # Customize the amount of memory on the VM:
   #   vb.memory = "1024"
   # end
-  #
   # View the documentation for the provider you are using for more
   # information on available options.
 
@@ -87,5 +88,10 @@ Vagrant.configure("2") do |config|
   config.vm.provision "ansible" do |ansible|
     ansible.verbose = "v"
     ansible.playbook = "playbook_install.yaml"
+    ansible.host_vars = {
+      "bullseye" => {"interface_0_name": "eth0"},
+      "buster" => {"interface_0_name": "eth0"},
+      "stretch" => {"interface_0_name": "ens5"}
+    }
   end
 end

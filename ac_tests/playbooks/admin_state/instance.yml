@@ -1,0 +1,27 @@
+- hosts: all
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+    - name: Create Instance
+      ganeti.cli.gnt_instance:
+        name: instance_admin_state
+        state: present
+        admin_state: stopped
+        params:
+          disk-template: file
+          disk:
+            - size: 10G
+            - name: disk2
+              size: 2G
+          os-type: noop
+          name-check: False
+          ip-check: False
+          hypervisor: fake
+          net:
+            - name: test
+              link: br_gnt
+              mode: bridged
+            - name: test2
+              link: br_gnt
+              vlan: 100

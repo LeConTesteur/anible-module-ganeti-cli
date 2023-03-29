@@ -1,0 +1,41 @@
+- hosts: all
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+    - name: Create Instance - without nics
+      ganeti.cli.gnt_instance:
+        name: create_no_nics_instance_1
+        state: present
+        params:
+          disk-template: file
+          disk:
+            - size: 10G
+          os-type: noop
+          name-check: False
+          ip-check: False
+          ignore-ipolicy: True
+          hypervisor: fake
+      tags:
+        - create
+    - name: Modify Instance - with nics
+      ganeti.cli.gnt_instance:
+        name: create_no_nics_instance_2
+        state: present
+        params:
+          disk-template: file
+          disk:
+            - size: 10G
+          os-type: noop
+          name-check: False
+          ip-check: False
+          hypervisor: fake
+          net:
+            - name: eth0
+              link: br_gnt
+            - name: eth1
+              link: br_gnt
+              vlan: 100
+      tags:
+        - create
+

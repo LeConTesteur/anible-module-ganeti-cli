@@ -1,0 +1,62 @@
+- hosts: all
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+    - name: Modify Instance - Create
+      ganeti.cli.gnt_instance:
+        name: modify_instance
+        state: present
+        params:
+          disk-template: file
+          disk:
+            - size: 10G
+            - name: disk2
+              size: 2G
+          os-type: noop
+          name-check: False
+          ip-check: False
+          hypervisor: fake
+          net:
+            - name: eth0
+              link: br_gnt
+            - name: eth1
+              link: br_gnt
+              vlan: 100
+      tags:
+        - create
+    - name: Modify Instance - without nics
+      ganeti.cli.gnt_instance:
+        name: modify_instance
+        state: present
+        admin_state: stopped
+        params:
+          disk-template: file
+          os-type: noop
+          name-check: False
+          ip-check: False
+          hypervisor: fake
+      tags:
+        - modify
+    - name: Modify Instance - Modify
+      ganeti.cli.gnt_instance:
+        name: modify_instance
+        state: present
+        admin_state: started
+        params:
+          disk-template: file
+          os-type: noop
+          name-check: False
+          ip-check: False
+          hypervisor: fake
+          net:
+            - name: eth0.0
+              link: br_gnt
+            - name: eth1
+              link: br_gnt
+              vlan: 300
+            - name: eth2
+              link: br_gnt
+              vlan: 200
+      tags:
+        - modify
