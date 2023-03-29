@@ -2,6 +2,8 @@
 Module contains the arguments spec of gnt-instance module
 """
 from collections import UserDict
+from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options.builders \
+    import DEFAULT_VALUE
 
 
 MAX_NICS = 8
@@ -196,14 +198,14 @@ osparams = []
 
 ganeti_instance_args_spec = {
     "disk_template":ArgumentSpec(
-        type='str', default='plain', choices=disk_templates),
+        type='str', default=DEFAULT_VALUE, choices=disk_templates),
     "disks":ArgumentSpec(type='list', required=False, options=disks_options),
     "hypervisor":ArgumentSpec(type='str', default='kvm',
                             choices=hypervisor_choices),
     "iallocator":ArgumentSpec(type='str', required=False,
-                            default='hail', gnt_list_ignore=True),
+                            default=None, gnt_list_ignore=True),
     "nics":ArgumentSpec(type='list', required=False, options=nics_options),
-    "os_type":ArgumentSpec(type='str', required=False, gnt_list_field='os'),
+    "os_type":ArgumentSpec(type='str', required=True, gnt_list_field='os'),
     #osparams=dict(type='dict', required=False, options=osparams),
     "pnode":ArgumentSpec(type='str', required=False, default=None),
     "hypervisor_params":ArgumentSpec(
