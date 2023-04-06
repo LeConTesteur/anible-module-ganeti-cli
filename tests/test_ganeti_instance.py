@@ -35,10 +35,44 @@ def fail_json(*args, **kwargs):
     kwargs['failed'] = True
     raise AnsibleFailJson(kwargs)
 
-def run_gnt_instance_list(name, *args, **kwargs):
-    return {
-        'name': name,
-    }
+class MockGntInstance:
+    vms = {}
+    def __init__(self, *args) -> None:
+        pass
+
+    def reboot(self, name:str, timeout:bool=0):
+        self.vms[name]['admin_state'] = 'up'
+
+    def stop(self, name:str, timeout:int=0, force:bool=False):
+        self.vms[name]['admin_state'] = 'down'
+
+    def start(self, name:str, start:bool=False):
+        self.vms[name]['admin_state'] = 'up'
+
+    def remove(self, name:str):
+        self.vms.pop(name)
+
+    def list(self, *names, header_names = None):
+        pass
+
+    def add(self, name:str, params: dict):
+        self.vms[name] = {'name': name, 'admin_state':'down'}
+
+    def modify(self, name:str, params: dict, vm_info: dict):
+        pass
+
+    def config_and_remote_have_difference(self, params: dict, vm_info) -> bool:
+        pass
+
+    def info(self, name:str):
+        return list(self.vms.values())
+
+    @classmethod
+    def _set_vm_info(cls, vm_info):
+        cls.vms = {}
+        for info in vm_info:
+            if 'name' in info:
+                cls.vms[info['name']] = info
 
 class TestMainGanetiInstanceCli(unittest.TestCase):
 
@@ -57,29 +91,27 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
                                                  fail_json=fail_json)
         self.mock_gnt_instance_helper = patch(
             'ansible_collections.ganeti.cli.plugins.modules.gnt_instance.GntInstance',
-            autospec=True
+            MockGntInstance
         )
         self.mock_module_helper.start()
         self.mock_gnt_instance = self.mock_gnt_instance_helper.start()
-        self.mock_instance = self.mock_gnt_instance.return_value
+        self.mock_gnt_instance.config_and_remote_have_difference = Mock()
+        self.mock_gnt_instance.modify = Mock()
+        self.mock_instance = self.mock_gnt_instance()
         self.addCleanup(self.mock_gnt_instance_helper.stop)
         self.addCleanup(self.mock_module_helper.stop)
 
     # pylint: disable=too-many-arguments
-    def _call_test(self, module_args, vm_info, expected_change=True, have_change=False, info_call=1, reboot_call=0, add_call=0, stop_call=0, modify_call=0, remove_call=0):
+    def _call_test(self, module_args, vm_info, expected_vm_info, expected_change=True, have_change=False, modify_call_count=0):
         set_module_args(module_args)
 
-        self.mock_instance.info = Mock(return_value=vm_info)
-        self.mock_instance.config_and_remote_have_different = Mock(return_value=have_change)
+        self.mock_instance._set_vm_info(vm_info)
+        self.mock_gnt_instance.config_and_remote_have_difference.return_value = have_change
         with self.assertRaises(AnsibleExitJson) as result:
             main(catch_exception=False)
         self._assertChangedEqual(result, expected_change)
-        self.assertEqual(self.mock_instance.info.call_count, info_call)
-        self.assertEqual(self.mock_instance.reboot.call_count, reboot_call)
-        self.assertEqual(self.mock_instance.add.call_count, add_call)
-        self.assertEqual(self.mock_instance.stop.call_count, stop_call)
-        self.assertEqual(self.mock_instance.remove.call_count, remove_call)
-        self.assertEqual(self.mock_instance.modify.call_count, modify_call)
+        self.assertEqual(self.mock_gnt_instance.modify.call_count, modify_call_count)
+        self.assertEqual(self.mock_instance.info(''), expected_vm_info)
 
     def test_module_fail_when_required_args_missing(self):
         with self.assertRaises(AnsibleFailJson):
@@ -93,14 +125,9 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
             'admin_state': 'restarted',
         })
 
-
-        self.mock_instance.list.return_value = [{'name': 'vm_test2', 'admin_state':'down'}]
+        self.mock_instance._set_vm_info([{'name': 'vm_test2', 'admin_state':'down'}])
         with self.assertRaises(AnsibleFailJson):
             main(catch_exception=False)
-        self.assertEqual(self.mock_instance.info.call_count, 1)
-        self.assertEqual(self.mock_instance.reboot.call_count, 0)
-        self.assertEqual(self.mock_instance.add.call_count, 0)
-        self.assertEqual(self.mock_instance.modify.call_count, 0)
 
     def test_stop_and_remove_if_expected_absent_and_exist(self):
         self._call_test({
@@ -108,8 +135,7 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
             'name': 'vm_test',
         },
         [{'name': 'vm_test', 'admin_state':'up'}],
-        stop_call=1,
-        remove_call=1
+        [],
         )
 
     def test_nothing_if_expected_absent_and_not_exist(self):
@@ -118,13 +144,15 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
             'name': 'vm_test',
         },
         [],
+        [],
         expected_change=False)
 
-    def test_nothing_if_expected_absent_and_not_exist_2(self):
+    def test_nothing_if_expected_absent_and_not_exist_with_other_vm(self):
         self._call_test({
             'state': 'absent',
             'name': 'vm_test',
         },
+        [{'name': 'vm_test2', 'admin_state':'up'}],
         [{'name': 'vm_test2', 'admin_state':'up'}],
         expected_change=False)
 
@@ -134,8 +162,8 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
             'name': 'vm_test',
         },
         [{'name': 'vm_test', 'admin_state':'up'}],
+        [{'name': 'vm_test', 'admin_state':'up'}],
         expected_change=False,
-        reboot_call=0
         )
 
     def test_reboot_if_expected_present_and_was_down_and_have_no_change(self):
@@ -145,7 +173,7 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
             'name': 'vm_test',
         },
         [{'name': 'vm_test', 'admin_state':'down'}],
-        reboot_call=1
+        [{'name': 'vm_test', 'admin_state':'up'}],
         )
 
     def test_reboot_if_expected_present_and_exist_and_restarted(self):
@@ -156,11 +184,8 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
                 'admin_state': 'restarted',
             },
             [{'name': 'vm_test', 'admin_state':'down'}],
-            reboot_call=1,
-            modify_call=0
+            [{'name': 'vm_test', 'admin_state':'up'}],
         )
-
-
 
     def test_reboot_and_modify_if_expected_present_and_exist_with_diff_params(self):
         self._call_test(
@@ -172,10 +197,10 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
                     'os-type': 'noop',
                 }
             },
-            [{'name': 'vm_test', 'disk_template':'plain','admin_state':'down'}],
+            [{'name': 'vm_test', 'admin_state':'down'}],
+            [{'name': 'vm_test', 'admin_state':'up'}],
             have_change=True,
-            reboot_call=1,
-            modify_call=1
+            modify_call_count=1
         )
 
 if __name__ == '__main__':

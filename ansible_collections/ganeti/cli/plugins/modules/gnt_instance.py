@@ -4,7 +4,8 @@ ansible gnt-instance module
 """
 
 from __future__ import (absolute_import, division, print_function)
-from typing import Dict
+from functools import wraps
+from typing import Any, Dict
 __metaclass__ = type  # pylint: disable=invalid-name
 
 from ansible.module_utils.basic import AnsibleModule
@@ -90,8 +91,149 @@ module_args = {
     "admin_state": {
         "type":'str', "required":False, "default":'started', "choices":admin_state_choices
     },
-    "reboot_if_change": {"type":'bool', "required":False, "default":False},
+    "restart_if_have_any_change": {"type":'bool', "required":False, "default":False},
 }
+
+class VM:
+    def __init__(self, params: Dict[str, Any]) -> None:
+        self.params = params
+
+    def must_be(self, attribute: str, value: Any) -> bool:
+        return self.params[attribute] == value
+
+    @property
+    def have_options(self) -> bool:
+        return bool(self.params['params'])
+
+    @property
+    def name(self) -> str:
+        return self.params['name']
+
+    @property
+    def must_be_absent(self) -> bool:
+        return self.must_be('state', 'absent')
+
+    @property
+    def must_be_present(self) -> bool:
+        return self.must_be('state', 'present')
+
+    @property
+    def must_be_reboot_if_have_difference(self) -> bool:
+        return self.params['restart_if_have_any_change']
+
+    @property
+    def must_be_up(self) -> bool:
+        return self.must_be('admin_state', 'started')
+
+    @property
+    def must_be_down(self) -> bool:
+        return self.must_be('admin_state', 'stopped')
+
+    @property
+    def must_be_restarted(self) -> bool:
+        return self.must_be('admin_state', 'restarted')
+
+
+def need_status(method):
+    @wraps(method)
+    def _impl(self, *args, **kwargs):
+        if self.status is None:
+            raise Exception('No VM status')
+        return method(self, *args, **kwargs)
+    return _impl
+
+class VmStatus:
+    #pylint: disable=invalid-name
+    def __init__(self, vm: VM, status: Dict[str, Any]) -> None:
+        self.vm = vm #pylint: disable=invalid-name
+        self.status = status
+
+    @property
+    def name(self) -> str:
+        return self.vm.name
+
+    @property
+    def is_present(self) -> bool:
+        return self.status is not None and self.status['name'] == self.name
+
+    @property
+    def is_absent(self) -> bool:
+        return not self.is_present
+
+    @property
+    @need_status
+    def is_up(self) -> bool:
+        return self.status['admin_state'] == 'up'
+
+    @property
+    @need_status
+    def is_down(self) -> bool:
+        return self.status['admin_state'] == 'down'
+
+class ModuleActions:
+    def __init__(self, module) -> None:
+        self.module = module
+        self.gnt_instance = GntInstance(module.run_command, self.error)
+        self.vm = VM(self.module.params) #pylint: disable=invalid-name
+        self.last_status = VmStatus(self.vm, None)
+
+    def error(self, code, stdout, stderr, msg=None):
+        self.module.fail_json(msg=msg, code=code, stdout=stdout, stderr=stderr)
+
+    def have_difference(self) -> bool:
+        if not self.vm.have_options:
+            return False
+        return self.gnt_instance.config_and_remote_have_difference(
+            self.vm.params,
+            self.last_status.status
+        )
+
+    def refresh_vm_status(self) -> VmStatus:
+        def filter_by_name(vm_info: Dict) -> bool:
+            return vm_info.get('name') == self.vm.name
+        try:
+            self.last_status = VmStatus(
+                self.vm,
+                next(
+                    filter(
+                        filter_by_name,
+                        self.gnt_instance.info(self.vm.name) or []
+                    )
+                )
+            )
+        except StopIteration:
+            self.last_status = VmStatus(self.vm, None)
+        return self.last_status
+
+
+
+    def create_vm(self):
+        return self.gnt_instance.add(
+            self.vm.name,
+            self.vm.params
+        )
+
+    def modify_vm(self):
+        return self.gnt_instance.modify(
+            self.vm.name,
+            self.vm.params,
+            self.last_status.status
+        )
+
+    def reboot_vm(self):
+        return self.gnt_instance.reboot(
+            self.vm.name
+        )
+
+    def stop_vm(self):
+        return self.gnt_instance.stop(
+            self.vm.name
+        )
+
+    def remove_vm(self):
+        return self.gnt_instance.remove(
+            self.vm.name
+        )
 
 
 def main_with_module(module: AnsibleModule) -> None:
@@ -106,62 +248,16 @@ def main_with_module(module: AnsibleModule) -> None:
     # state will include any data that you want your module to pass back
     # for consumption, for example, in a subsequent task
     result = {
-        "changed":False,
-        "original_message":'',
-        "message":''
+        "changed": False,
+        "original_message": '',
+        "message": ''
     }
 
-    def error_function(code, stdout, stderr, msg=None):
-        module.fail_json(msg=msg, code=code, stdout=stdout, stderr=stderr)
+    actions = ModuleActions(module)
+    vm = actions.vm #pylint: disable=invalid-name
+    status = actions.refresh_vm_status()
 
-    gnt_instance = GntInstance(module.run_command, error_function)
 
-    def vm_is_present_on_remote(name: str, vm_info):
-        return vm_info is not None and vm_info['name'] == name
-
-    def get_vm_info(name: str) -> Dict:
-        def filter_by_name(vm_info: Dict) -> bool:
-            return vm_info.get('name') == name
-        try:
-            return next(
-                filter(
-                    filter_by_name,
-                    gnt_instance.info(name) or []
-                )
-            )
-        except StopIteration:
-            return None
-
-    def have_vm_change(options, remote):
-        return gnt_instance.config_and_remote_have_different(options, remote)
-
-    def create_vm(name: str, vm_params):
-        return gnt_instance.add(
-            name,
-            vm_params
-        )
-
-    def modify_vm(name: str, vm_params: dict, vm_info: dict):
-        return gnt_instance.modify(
-            name,
-            vm_params,
-            vm_info
-        )
-
-    def reboot_vm(name: str):
-        return gnt_instance.reboot(
-            name
-        )
-
-    def stop_vm(name: str = False):
-        return gnt_instance.stop(
-            name
-        )
-
-    def remove_vm(name: str):
-        return gnt_instance.remove(
-            name
-        )
 
     # if present expected
     #   if vm does not exit => create (change) (only_one_vm)
@@ -174,35 +270,35 @@ def main_with_module(module: AnsibleModule) -> None:
     #   stop (multi_vm / no conf)
     #   remove (list before form multi_vm)
 
-    vm_name = module.params['name']
-    vm_info = get_vm_info(vm_name)
 
-    if module.params['state'] == 'present':
-        if not vm_is_present_on_remote(vm_name, vm_info) and not module.params['params']:
+    if vm.must_be_present:
+        if not status.is_present and not vm.have_options:
             module.fail_json(
                 msg='The params of VM must be present if VM does\'t exist')
 
-        if not vm_is_present_on_remote(vm_name, vm_info):
-            create_vm(vm_name, module.params)
+        if status.is_absent:
+            actions.create_vm()
             result['changed'] = True
-            vm_info = get_vm_info(vm_name)
-        elif module.params['params'] and have_vm_change(module.params['params'], vm_info):
-            modify_vm(vm_name, module.params, vm_info)
+        elif actions.have_difference():
+            if vm.must_be_reboot_if_have_difference:
+                actions.stop_vm()
+            actions.modify_vm()
             result['changed'] = True
 
-        if module.params['admin_state'] == 'restarted' or \
-                module.params['admin_state'] == 'started' and result['changed'] or \
-                module.params['admin_state'] == 'started' and vm_info['admin_state'] != 'up':
-            reboot_vm(vm_name)
+        if result['changed']:
+            status = actions.refresh_vm_status()
+
+        if vm.must_be_restarted or vm.must_be_up and not status.is_up:
+            actions.reboot_vm()
             result['changed'] = True
-        elif module.params['admin_state'] == 'stopped' and vm_info['admin_state'] != 'down':
-            stop_vm(vm_name)
+        elif vm.must_be_down and not status.is_down:
+            actions.stop_vm()
             result['changed'] = True
-    if module.params['state'] == 'absent':
-        if vm_is_present_on_remote(vm_name, vm_info):
-            stop_vm(vm_name)
-            remove_vm(vm_name)
-            result['changed'] = True
+
+    if vm.must_be_absent and not status.is_absent:
+        actions.stop_vm()
+        actions.remove_vm()
+        result['changed'] = True
 
     # if the user is working with this module in only check mode we do not
     # want to make any changes to the environment, just return the current

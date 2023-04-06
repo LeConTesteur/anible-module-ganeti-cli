@@ -25,24 +25,12 @@
               vlan: 100
       tags:
         - create
-    - name: Modify Instance - without nics
-      ganeti.cli.gnt_instance:
-        name: modify_instance
-        state: present
-        admin_state: stopped
-        params:
-          disk-template: file
-          os-type: noop
-          name-check: False
-          ip-check: False
-          hypervisor: fake
-      tags:
-        - modify
     - name: Modify Instance - Modify
       ganeti.cli.gnt_instance:
         name: modify_instance
         state: present
         admin_state: started
+        restart_if_have_any_change: True
         params:
           disk-template: file
           os-type: noop

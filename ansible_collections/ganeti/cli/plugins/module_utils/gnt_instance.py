@@ -241,15 +241,15 @@ class GntInstance(GntCommand):
             command='modify'
         )
 
-    def config_and_remote_have_different(self, params: dict, vm_info) -> bool:
-        """Compute different between cofig and remote information
+    def config_and_remote_have_difference(self, params: dict, vm_info) -> bool:
+        """Compute different between config and remote information
 
         Args:
             params (dict): Param of ansible module
             vm_info (_type_): Remote vm information
 
         Returns:
-            bool: Have different
+            bool: Have difference
         """
         options = BuilderCommand(builder_gnt_instance_spec).generate(
             module_params=params, info_data=vm_info, to_command=CommandType.MODIFY
