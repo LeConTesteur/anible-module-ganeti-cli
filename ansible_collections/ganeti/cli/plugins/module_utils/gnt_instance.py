@@ -70,8 +70,81 @@ def parse_info_instances(*_, stdout: str, **__) -> List[Dict]:
 
 disk_templates = ['sharedfile', 'diskless', 'plain', 'gluster', 'blockdev',
                   'drbd', 'ext', 'file', 'rbd']
+file_driver_choices = ["loop", "blktap", "blktap2" ]
 hypervisor_choices = ['chroot', 'xen-pvm', 'kvm', 'xen-hvm', 'lxc', 'fake']
 nic_types_choices = ['bridged', 'openvswitch']
+hypervisor_params_list = [
+    "boot_order",
+    "blockdev_prefix",
+    "floppy_image_path",
+    "cdrom_image_path",
+    "cdrom2_image_path",
+    "nic_type",
+    "vif_type",
+    "disk_type",
+    "cdrom_disk_type",
+    "vnc_bind_address",
+    "vnc_password_file",
+    "vnc_tls",
+    "vnc_x509_path",
+    "vnc_x509_verify",
+    "spice_bind",
+    "spice_ip_version",
+    "spice_password_file",
+    "spice_image_compression",
+    "spice_jpeg_wan_compression",
+    "spice_zlib_glz_wan_compression",
+    "spice_streaming_video",
+    "spice_playback_compression",
+    "spice_use_tls",
+    "spice_tls_ciphers",
+    "spice_use_vdagent",
+    "cpu_type",
+    "acpi",
+    "pae",
+    "viridian",
+    "use_localtime",
+    "kernel_path",
+    "kernel_args",
+    "initrd_path",
+    "root_path",
+    "serial_console",
+    "serial_speed",
+    "disk_cache",
+    "disk_aio",
+    "security_model",
+    "security_domain",
+    "kvm_flag",
+    "mem_path",
+    "use_chroot",
+    "user_shutdown",
+    "migration_downtime",
+    "cpu_mask",
+    "cpu_cap",
+    "cpu_weight",
+    "usb_mouse",
+    "keymap",
+    "reboot_behavior",
+    "cpu_cores",
+    "cpu_threads",
+    "cpu_sockets",
+    "soundhw",
+    "cpuid",
+    "usb_devices",
+    "vga",
+    "kvm_extra",
+    "machine_version",
+    "migration_caps",
+    "kvm_path",
+    "vnet_hdr",
+    "virtio_net_queues",
+    "startup_timeout",
+    "extra_cgroups",
+    "drop_capabilities",
+    "devices",
+    "extra_config",
+    "num_ttys",
+]
 
 disks_options = [
     BuilderCommandOptionsSpecListSubElement(name='name', type="str", require=True),
@@ -87,24 +160,36 @@ nics_options = [
     BuilderCommandOptionsSpecListSubElement(name='name', type="str", require=True),
     BuilderCommandOptionsSpecListSubElement(name='link', type="str", require=True),
     BuilderCommandOptionsSpecListSubElement(name='vlan', type="str", require=False),
+    BuilderCommandOptionsSpecListSubElement(name='network', type="str", require=False),
     BuilderCommandOptionsSpecListSubElement(
         name='mode', type="str", default='bridged',require=True),
 ]
 
 hypervisor_params = [
-    BuilderCommandOptionsSpecSubElement(name='kernel_args', type='str'),
-    BuilderCommandOptionsSpecSubElement(name='kernel_path', type='str'),
+    BuilderCommandOptionsSpecSubElement(name=param, type='str')
+    for param in hypervisor_params_list
 ]
 
 backend_param = [
+    BuilderCommandOptionsSpecSubElement(name='maxmem', type='int'),
+    BuilderCommandOptionsSpecSubElement(name='minmem', type='int'),
     BuilderCommandOptionsSpecSubElement(name='memory', type='int'),
     BuilderCommandOptionsSpecSubElement(name='vcpus', type='int'),
+    BuilderCommandOptionsSpecSubElement(name='always_failover', type='bool'),
 ]
 
 builder_gnt_instance_spec = BuilderCommandOptionsRootSpec(
     BuilderCommandOptionsSpecElement(
-        name='disk-template', type='str', default='plain', choices=disk_templates,
+        name='disk-template', type='str', choices=disk_templates,
         info_key='Disk template'
+    ),
+    BuilderCommandOptionsSpecElement(
+        name='file-driver', type='str',
+        info_key='File driver'
+    ),
+    BuilderCommandOptionsSpecElement(
+        name='file-storage-dir', type='str',
+        info_key='File driver'
     ),
     BuilderCommandOptionsSpecList(
         *disks_options,
@@ -112,7 +197,7 @@ builder_gnt_instance_spec = BuilderCommandOptionsRootSpec(
         info_key='Disks'
     ),
     BuilderCommandOptionsSpecElement(
-        name='hypervisor', type='str', default='kvm', choices=hypervisor_choices,
+        name='hypervisor', type='str', choices=hypervisor_choices,
         info_key='Hypervisor'
     ),
     BuilderCommandOptionsSpecElementOnlyCreate(name='iallocator', type='str'),
@@ -123,7 +208,7 @@ builder_gnt_instance_spec = BuilderCommandOptionsRootSpec(
         no_option='--no-nics'
     ),
     BuilderCommandOptionsSpecElement(
-        name='os-type', type='str', required=True, info_key='Operating system'),
+        name='os-type', type='str', info_key='Operating system'),
     BuilderCommandOptionsSpecDict(
         *hypervisor_params,
         name='hypervisor-parameters',

@@ -31,8 +31,8 @@ from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options
 )
 
 
-DEFAULT_VALUE= 'default'
-NONE_VALUE= 'None'
+DEFAULT_VALUE = 'default'
+NONE_VALUE = 'None'
 IGNORE_INFO_KEY = object()
 
 PrefixBuilder = Callable[[Any, Any], Prefix]
@@ -211,7 +211,7 @@ class BuilderCommandOptionsRootSpec(BuilderCommandOptionsSpec):
     """The root Builder spec
     """
     def __init__(self, *args: List[BuilderCommandOptionsSpecAbstract]) -> None:
-        super().__init__(*args, name='params', info_key=IGNORE_INFO_KEY)
+        super().__init__(*args, name='options', info_key=IGNORE_INFO_KEY)
 
     def to_args_spec(self) -> Dict:
         return {

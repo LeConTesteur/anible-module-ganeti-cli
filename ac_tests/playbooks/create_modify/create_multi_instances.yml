@@ -7,7 +7,7 @@
       ganeti.cli.gnt_instance:
         name: "create_multi_instances_{{item}}"
         state: present
-        params:
+        options:
           disk-template: file
           disk:
             - size: 10G

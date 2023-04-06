@@ -8,7 +8,7 @@
         name: instance_admin_state
         state: present
         admin_state: stopped
-        params:
+        options:
           disk-template: file
           disk:
             - size: 10G

@@ -7,7 +7,7 @@
       ganeti.cli.gnt_instance:
         name: modify_instance
         state: present
-        params:
+        options:
           disk-template: file
           disk:
             - size: 10G
@@ -30,8 +30,8 @@
         name: modify_instance
         state: present
         admin_state: started
-        restart_if_have_any_change: True
-        params:
+        reboot_if_have_any_change: True
+        options:
           disk-template: file
           os-type: noop
           name-check: False
