@@ -11,7 +11,7 @@ Test Setup    Test Setup
 *** Variables ***
 ${INVENTORY}    inventory
 ${INVENTORY_ABSOLUE_PATH}    ac_tests/${INVENTORY}
-${PLAYBOOKS_FOLDER}    playbooks
+${PLAYBOOKS_FOLDER}    playbooks/instances
 ${PLAYBOOKS_CREATE_FOLDER}    ${PLAYBOOKS_FOLDER}/create_modify
 ${PLAYBOOKS_STATE_FOLDER}    ${PLAYBOOKS_FOLDER}/state
 ${PLAYBOOKS_ADMIN_STATE_FOLDER}    ${PLAYBOOKS_FOLDER}/admin_state

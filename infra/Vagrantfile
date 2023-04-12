@@ -13,21 +13,24 @@ Vagrant.configure("2") do |config|
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
   #config.vm.box = "debian/buster64"
-  config.vm.define "bullseye" do |debian|
-    debian.vm.box = "debian/bullseye64"
-  end
+  ansible_group = {}
+  for name in ['', '-node1', '-node2']
+    config.vm.define "bullseye#{name}" do |debian|
+      debian.vm.box = "debian/bullseye64"
+    end
 
-  config.vm.define "buster" do |debian|
-    debian.vm.box = "debian/buster64"
-  end
+    config.vm.define "buster#{name}" do |debian|
+      debian.vm.box = "debian/buster64"
+    end
 
-  config.vm.define "stretch" do |debian|
-    debian.vm.box = "debian/stretch64"
-  end
+    config.vm.define "stretch#{name}" do |debian|
+      debian.vm.box = "debian/stretch64"
+    end
 
-  config.vm.provider "libvirt" do |libvirt|
-    libvirt.memory = 2048
-    libvirt.nic_model_type = 'e1000'
+    config.vm.provider "libvirt" do |libvirt|
+      libvirt.memory = 2048
+      libvirt.nic_model_type = 'e1000'
+    end
   end
 
   # Disable automatic box update checking. If you disable this, then
@@ -88,10 +91,13 @@ Vagrant.configure("2") do |config|
   config.vm.provision "ansible" do |ansible|
     ansible.verbose = "v"
     ansible.playbook = "playbook_install.yaml"
-    ansible.host_vars = {
-      "bullseye" => {"interface_0_name": "eth0"},
-      "buster" => {"interface_0_name": "eth0"},
-      "stretch" => {"interface_0_name": "ens5"}
+    ansible.groups = {
+      "bullseye" => ['bullseye', 'bullseye-node1', 'bullseye-node2'],
+      "bullseye:vars" => {"interface_0_name": "eth0"},
+      "buster" => ['buster', 'buster-node1', 'buster-node2'],
+      "buster:vars" => {"interface_0_name": "eth0"},
+      "stretch" => ['stretch', 'stretch-node1', 'stretch-node2'],
+      "stretch:vars" => {"interface_0_name": "eth0"},
     }
   end
 end

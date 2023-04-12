@@ -56,8 +56,8 @@
       dest: /etc/ganeti/file-storage-paths
   # hostname
   - name: Send hostname
-    copy:
-      src: hostname
+    template:
+      src: hostname.j2
       dest: /etc/hostname
     notify:
       - reload hostname
@@ -67,10 +67,12 @@
       dest: /etc/hosts
   vars:
     ansible_python_interpreter: /usr/bin/python3
-    node1_ip: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['address']}}"
-    node1_gateway: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['gateway']}}"
-    node1_netmask: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['netmask']}}"
-    node1_interface: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['interface']}}"
+    host_group_name: "{{group_names | first}}"
+    host_name: "{{inventory_hostname}}"
+    host_ip: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['address']}}"
+    host_gateway: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['gateway']}}"
+    host_netmask: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['netmask']}}"
+    host_interface: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['interface']}}"
   handlers:
     - name: restart network
       ansible.builtin.systemd:
