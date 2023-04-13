@@ -18,6 +18,7 @@ class GntListOption:
     type => type of perser. @PARSERS
     """
     # pylint: disable=redefined-builtin
+
     def __init__(self, alias, type) -> None:
         self._alias = alias
         self._type = type
@@ -49,7 +50,7 @@ SEPARATOR_COL = '--##'
 # print(ganeti_instance_args_spec)
 
 
-def args_spec_to_field_headers(args_spec: dict, index:int=None) -> dict:
+def args_spec_to_field_headers(args_spec: dict, index: int = None) -> dict:
     """
     Convert ganeti instance arguments spec to field headers
     """
@@ -65,7 +66,8 @@ def args_spec_to_field_headers(args_spec: dict, index:int=None) -> dict:
                 for index in range(spec['options'].count)
             ]
         else:
-            headers[name] = GntListOption(spec.format(index) or name, spec['type'])
+            headers[name] = GntListOption(
+                spec.format(index) or name, spec['type'])
     return headers
 
 
@@ -96,6 +98,7 @@ field_headers = OrderedDict(
            ganeti_instance_args_spec_flat_items()), key=lambda x: x[0])
 )
 
+
 def subheaders(*header_names):
     """
     Get sub field headers
@@ -124,7 +127,7 @@ def get_keys_to_change_module_params_and_result(options, remote):
     ]
 
 
-def get_disk_count(remote:dict) -> int:
+def get_disk_count(remote: dict) -> int:
     """Get number of disk in server
 
     Args:
@@ -135,7 +138,8 @@ def get_disk_count(remote:dict) -> int:
     """
     return remote['disk_count']
 
-def get_nic_count(remote:dict) -> int:
+
+def get_nic_count(remote: dict) -> int:
     """Get number of interface in server
 
     Args:
@@ -145,6 +149,7 @@ def get_nic_count(remote:dict) -> int:
         int: Number of interface
     """
     return remote['nic_count']
+
 
 def parse_str(value):
     """
@@ -185,11 +190,13 @@ def parse_boolean(value: str):
     raise ValueError(
         'Boolean value must be "y" or "Y" or "N" or "n", not : {}'.format(value))
 
+
 def parse_int(value: str):
     """
     Parse number value from gnt-instance list column
     """
     return int(value)
+
 
 PARSERS = {
     'str': parse_str,
@@ -235,10 +242,10 @@ def parse_ganeti_list_output_line(stdout: str, headers: Dict[str, GntListOption]
 
 
 def parse_ganeti_list_output(
-        *_: str,
-        stdout: str,
-        headers: Dict[str, GntListOption] = None
-    ) -> list:
+    *_: str,
+    stdout: str,
+    headers: Dict[str, GntListOption] = None
+) -> list:
     """
     Parse gnt-instance list result
     """
@@ -255,7 +262,8 @@ def get_alias(gnt_list_option):
     """
     return gnt_list_option.alias
 
-def merge_alias_headers(headers:Dict[str, GntListOption]):
+
+def merge_alias_headers(headers: Dict[str, GntListOption]):
     """
     Merge all alias from headers
     """
@@ -263,7 +271,8 @@ def merge_alias_headers(headers:Dict[str, GntListOption]):
         map(get_alias, headers.values())
     )
 
-def build_gnt_instance_list_arguments(*names:List[str], header_names:List[str]):
+
+def build_gnt_instance_list_arguments(*names: List[str], header_names: List[str]):
     """Run gnt-instance list. Get all information on instances.
 
     Args:

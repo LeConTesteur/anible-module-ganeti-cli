@@ -7,7 +7,8 @@ import yaml
 
 DefaultValidator = Callable[[str], bool]
 
-def dict_get(data:dict, key:str) -> Any:
+
+def dict_get(data: dict, key: str) -> Any:
     """Get element in dict
 
     Args:
@@ -22,7 +23,7 @@ def dict_get(data:dict, key:str) -> Any:
     return dict.get(data, key)
 
 
-def recursive_get(data: dict, keys:List[str]) -> Any:
+def recursive_get(data: dict, keys: List[str]) -> Any:
     """Get element in dict
 
     Args:
@@ -37,7 +38,8 @@ def recursive_get(data: dict, keys:List[str]) -> Any:
         return None
     return reduce(dict_get, keys, data)
 
-def info_default_validator(value:str) -> bool:
+
+def info_default_validator(value: str) -> bool:
     """Validator for check if is a default value
 
     Args:
@@ -50,7 +52,8 @@ def info_default_validator(value:str) -> bool:
         return False
     return bool(re.match(r'default\s+[(][^)]*[)]', value))
 
-def nic_default_validator(value:str) -> bool:
+
+def nic_default_validator(value: str) -> bool:
     """Validator for check if is a default value if nic dictionnary
 
     Args:
@@ -65,7 +68,8 @@ def nic_default_validator(value:str) -> bool:
         return True
     return bool(re.match(r'\s*None\s*', value))
 
-def value_info_extractor(data:dict, keys:List[str], default_validator:DefaultValidator=None) -> Any:
+
+def value_info_extractor(data: dict, keys: List[str], default_validator: DefaultValidator = None) -> Any:
     """Extract value from vm information
 
     Args:
@@ -83,7 +87,8 @@ def value_info_extractor(data:dict, keys:List[str], default_validator:DefaultVal
         return None
     return yaml.safe_load(value)
 
-def size_param_info_extractor(data:dict, keys:List[str]) -> Any:
+
+def size_param_info_extractor(data: dict, keys: List[str]) -> Any:
     """Extract size value
 
     Args:
@@ -100,6 +105,7 @@ def size_param_info_extractor(data:dict, keys:List[str]) -> Any:
     if not match:
         return None
     return '{}{}'.format(float(match.group('value')), match.group('unit'))
+
 
 ValueParamExtractor = Callable[[Dict, List[str]], Any]
 ValueInfoExtractor = Callable[[Dict, List[str]], Any]

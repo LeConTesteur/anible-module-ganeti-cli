@@ -14,12 +14,14 @@ class PrefixTypeEnum(Enum):
     STR = 4
     INDEX = 5
 
+
 class Prefix:
     """
     Prefix class
     """
     _type = None
-    def __init__(self, prefix:str=None) -> None:
+
+    def __init__(self, prefix: str = None) -> None:
         self._prefix = prefix
         if self._type == PrefixTypeEnum.STR and not self.prefix:
             raise ValueError('Prefix can\'t be None when Type is STR')
@@ -42,8 +44,9 @@ class Prefix:
     def __iter__(self):
         return iter([self])
 
-    def __getitem__(self,_):
+    def __getitem__(self, _):
         return self
+
 
 class PrefixNone(Prefix):
     """
@@ -51,11 +54,13 @@ class PrefixNone(Prefix):
     """
     _type = PrefixTypeEnum.NONE
 
+
 class PrefixModify(Prefix):
     """
     Prefix Modify
     """
     _type = PrefixTypeEnum.MODIFY
+
 
 class PrefixAdd(Prefix):
     """
@@ -63,11 +68,13 @@ class PrefixAdd(Prefix):
     """
     _type = PrefixTypeEnum.ADD
 
+
 class PrefixRemove(Prefix):
     """
     Prefix Remove
     """
     _type = PrefixTypeEnum.REMOVE
+
 
 class PrefixStr(Prefix):
     """
@@ -75,11 +82,13 @@ class PrefixStr(Prefix):
     """
     _type = PrefixTypeEnum.STR
 
+
 class PrefixIndex(Prefix):
     """
     Prefix Index
     """
     _type = PrefixTypeEnum.INDEX
+
 
 def format_prefix(prefix: Prefix, index: int) -> str:
     """Build prefix string

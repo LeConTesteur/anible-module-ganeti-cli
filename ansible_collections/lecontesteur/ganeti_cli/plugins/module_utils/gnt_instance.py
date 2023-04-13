@@ -6,15 +6,15 @@ import re
 
 
 from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.gnt_command import (
-  GntCommand,
+    GntCommand,
 )
 from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.gnt_instance_list import (
-  build_gnt_instance_list_arguments,
-  parse_ganeti_list_output
+    build_gnt_instance_list_arguments,
+    parse_ganeti_list_output
 )
 
 from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.parse_info_response import (
-  parse_from_stdout
+    parse_from_stdout
 )
 
 from ansible_collections.lecontesteur.ganeti_cli.plugins.\
@@ -30,12 +30,13 @@ from ansible_collections.lecontesteur.ganeti_cli.plugins.\
         BuilderCommandOptionsSpecStateElement,
         BuilderCommandOptionsSpecSubElement,
         CommandType
-)
+    )
 
 
 GNT_INSTALL_CMD_DEFAULT = 'gnt-instance'
 
-def parse_state(state:str) -> Tuple[bool, bool]:
+
+def parse_state(state: str) -> Tuple[bool, bool]:
     """Parse the string for extract state and admin_state
 
     Args:
@@ -49,6 +50,7 @@ def parse_state(state:str) -> Tuple[bool, bool]:
         state
     )
     return match.group('admin_state'),  match.group('state')
+
 
 def parse_info_instances(*_, stdout: str, **__) -> List[Dict]:
     """Parse info return of ganeti commands
@@ -69,9 +71,10 @@ def parse_info_instances(*_, stdout: str, **__) -> List[Dict]:
         l_info.append(info_instance)
     return l_info
 
+
 disk_templates = ['sharedfile', 'diskless', 'plain', 'gluster', 'blockdev',
                   'drbd', 'ext', 'file', 'rbd']
-file_driver_choices = ["loop", "blktap", "blktap2" ]
+file_driver_choices = ["loop", "blktap", "blktap2"]
 hypervisor_choices = ['chroot', 'xen-pvm', 'kvm', 'xen-hvm', 'lxc', 'fake']
 nic_types_choices = ['bridged', 'openvswitch']
 hypervisor_params_list = [
@@ -148,22 +151,31 @@ hypervisor_params_list = [
 ]
 
 disks_options = [
-    BuilderCommandOptionsSpecListSubElement(name='name', type="str", require=True),
+    BuilderCommandOptionsSpecListSubElement(
+        name='name', type="str", require=True),
     BuilderCommandOptionsSpecListSubElement(
         name='size', type="int", require=True, only=CommandType.CREATE),
-    BuilderCommandOptionsSpecListSubElement(name='spindles', type="str", require=True),
-    BuilderCommandOptionsSpecListSubElement(name='metavg', type="str", require=True),
-    BuilderCommandOptionsSpecListSubElement(name='access', type="str", require=True),
-    BuilderCommandOptionsSpecListSubElement(name='access', type="str", require=True),
+    BuilderCommandOptionsSpecListSubElement(
+        name='spindles', type="str", require=True),
+    BuilderCommandOptionsSpecListSubElement(
+        name='metavg', type="str", require=True),
+    BuilderCommandOptionsSpecListSubElement(
+        name='access', type="str", require=True),
+    BuilderCommandOptionsSpecListSubElement(
+        name='access', type="str", require=True),
 ]
 
 nics_options = [
-    BuilderCommandOptionsSpecListSubElement(name='name', type="str", require=True),
-    BuilderCommandOptionsSpecListSubElement(name='link', type="str", require=True),
-    BuilderCommandOptionsSpecListSubElement(name='vlan', type="str", require=False),
-    BuilderCommandOptionsSpecListSubElement(name='network', type="str", require=False),
     BuilderCommandOptionsSpecListSubElement(
-        name='mode', type="str", default='bridged',require=True),
+        name='name', type="str", require=True),
+    BuilderCommandOptionsSpecListSubElement(
+        name='link', type="str", require=True),
+    BuilderCommandOptionsSpecListSubElement(
+        name='vlan', type="str", require=False),
+    BuilderCommandOptionsSpecListSubElement(
+        name='network', type="str", require=False),
+    BuilderCommandOptionsSpecListSubElement(
+        name='mode', type="str", default='bridged', require=True),
 ]
 
 hypervisor_params = [
@@ -222,28 +234,39 @@ builder_gnt_instance_spec = BuilderCommandOptionsRootSpec(
     ),
     BuilderCommandOptionsSpecStateElement(name='submit'),
     BuilderCommandOptionsSpecStateElement(name='ignore-ipolicy'),
-    BuilderCommandOptionsSpecStateElement(name='offline', only=CommandType.MODIFY),
-    BuilderCommandOptionsSpecStateElement(name='online', only=CommandType.MODIFY),
-    BuilderCommandOptionsSpecStateElement(name='hotplug', only=CommandType.MODIFY),
-    BuilderCommandOptionsSpecStateElement(name='hotplug-if-possible', only=CommandType.MODIFY),
-    BuilderCommandOptionsSpecStateElement(name='force', only=CommandType.MODIFY),
-    BuilderCommandOptionsSpecNoStateElement(name='name-check', only=CommandType.CREATE),
-    BuilderCommandOptionsSpecNoStateElement(name='ip-check', only=CommandType.CREATE),
-    BuilderCommandOptionsSpecNoStateElement(name='conflicts-check', only=CommandType.CREATE),
-    BuilderCommandOptionsSpecNoStateElement(name='install', only=CommandType.CREATE),
-    BuilderCommandOptionsSpecNoStateElement(name='start', default=False, only=CommandType.CREATE),
+    BuilderCommandOptionsSpecStateElement(
+        name='offline', only=CommandType.MODIFY),
+    BuilderCommandOptionsSpecStateElement(
+        name='online', only=CommandType.MODIFY),
+    BuilderCommandOptionsSpecStateElement(
+        name='hotplug', only=CommandType.MODIFY),
+    BuilderCommandOptionsSpecStateElement(
+        name='hotplug-if-possible', only=CommandType.MODIFY),
+    BuilderCommandOptionsSpecStateElement(
+        name='force', only=CommandType.MODIFY),
+    BuilderCommandOptionsSpecNoStateElement(
+        name='name-check', only=CommandType.CREATE),
+    BuilderCommandOptionsSpecNoStateElement(
+        name='ip-check', only=CommandType.CREATE),
+    BuilderCommandOptionsSpecNoStateElement(
+        name='conflicts-check', only=CommandType.CREATE),
+    BuilderCommandOptionsSpecNoStateElement(
+        name='install', only=CommandType.CREATE),
+    BuilderCommandOptionsSpecNoStateElement(
+        name='start', default=False, only=CommandType.CREATE),
     BuilderCommandOptionsSpecNoStateElement(name='wait-for-sync'),
 )
+
 
 class GntInstance(GntCommand):
     """
     Class GntInstance
     """
-    def __init__(self, run_function: Callable, error_function: Callable, binary: str=None) -> None:
+
+    def __init__(self, run_function: Callable, error_function: Callable, binary: str = None) -> None:
         super().__init__(run_function, error_function, binary or GNT_INSTALL_CMD_DEFAULT)
 
-
-    def reboot(self, name:str, timeout:bool=0):
+    def reboot(self, name: str, timeout: bool = 0):
         """
         Builder of options of reboot
         """
@@ -254,7 +277,7 @@ class GntInstance(GntCommand):
 
         )
 
-    def stop(self, name:str, timeout:int=0, force:bool=False):
+    def stop(self, name: str, timeout: int = 0, force: bool = False):
         """
         Builder of options of stop
         """
@@ -265,7 +288,7 @@ class GntInstance(GntCommand):
             command='stop'
         )
 
-    def start(self, name:str, start:bool=False):
+    def start(self, name: str, start: bool = False):
         """
         Builder of options of start
         """
@@ -275,7 +298,7 @@ class GntInstance(GntCommand):
             command='start'
         )
 
-    def remove(self, name:str):
+    def remove(self, name: str):
         """
         Builder of options of remove
         """
@@ -285,7 +308,7 @@ class GntInstance(GntCommand):
             command='remove'
         )
 
-    def list(self, *names:List[str], header_names: List[str] = None) -> List:
+    def list(self, *names: List[str], header_names: List[str] = None) -> List:
         """Run gnt-instance list. Get all information on instances.
 
         Args:
@@ -303,7 +326,7 @@ class GntInstance(GntCommand):
             return_none_if_error=True
         )
 
-    def add(self, name:str, params: dict):
+    def add(self, name: str, params: dict):
         """
         Run command: gnt-instance add
         """
@@ -315,7 +338,7 @@ class GntInstance(GntCommand):
             command='add'
         )
 
-    def modify(self, name:str, params: dict, vm_info: dict):
+    def modify(self, name: str, params: dict, vm_info: dict):
         """
         Run command: gnt-instance modify
         """
@@ -342,8 +365,7 @@ class GntInstance(GntCommand):
         )
         return bool(options.strip())
 
-
-    def info(self, name:str) -> List[Dict]:
+    def info(self, name: str) -> List[Dict]:
         """Return Information of instances
 
         Args:

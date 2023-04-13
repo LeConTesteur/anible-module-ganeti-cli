@@ -15,19 +15,14 @@ from ansible_collections.lecontesteur.ganeti_cli.plugins.\
     module_utils.gnt_instance import (
         GntInstance,
         builder_gnt_instance_spec
-)
+    )
 
 
 DOCUMENTATION = r'''
 ---
-module: ganeti_instance_cli
+module: lecontesteur.ganeti_cli.gnt_instance
 
 short_description: Create/Remove/Modify ganeti instance from cli
-# If this is part of a collection, you need to use semantic versioning,
-# i.e. the version is of the form "2.5.0" and not "2.4".
-version_added: "1.0.0"
-
-description: This is my longer description explaining my test module.
 
 options:
     name:
@@ -126,18 +121,20 @@ RETURN = r'''
 state_choices = ['present', 'absent']
 admin_state_choices = ['restarted', 'started', 'stopped']
 module_args = {
-    "name": {"type":'str', "required":True, "aliases":['instance_name']},
-    "state": {"type":'str', "required":False, "default":'present', "choices":state_choices},
+    "name": {"type": 'str', "required": True, "aliases": ['instance_name']},
+    "state": {"type": 'str', "required": False, "default": 'present', "choices": state_choices},
     "options": BuilderCommand(builder_gnt_instance_spec).generate_args_spec(),
     "admin_state": {
-        "type":'str', "required":False, "default":'started', "choices":admin_state_choices
+        "type": 'str', "required": False, "default": 'started', "choices": admin_state_choices
     },
-    "reboot_if_have_any_change": {"type":'bool', "required":False, "default":False},
+    "reboot_if_have_any_change": {"type": 'bool', "required": False, "default": False},
 }
+
 
 class Instance:
     """This class implement method for get information of instance options
     """
+
     def __init__(self, params: Dict[str, Any]) -> None:
         self.params = params
 
@@ -176,12 +173,14 @@ class Instance:
     def must_be_restarted(self) -> bool:
         return self.must_be('admin_state', 'restarted')
 
+
 class InstanceStatusMissing(Exception):
     """Exception raise when status is missing
 
     Args:
         Exception (str): The message
     """
+
 
 def need_status(method):
     @wraps(method)
@@ -191,9 +190,11 @@ def need_status(method):
         return method(self, *args, **kwargs)
     return _impl
 
+
 class InstanceStatus:
     """This class implement method for get status of remote instance
     """
+
     def __init__(self, instance: Instance, status: Dict[str, Any]) -> None:
         self.instance = instance
         self.status = status
@@ -220,9 +221,11 @@ class InstanceStatus:
     def is_down(self) -> bool:
         return self.status['admin_state'] == 'down'
 
+
 class ModuleActions:
     """This class implement actions of module
     """
+
     def __init__(self, module) -> None:
         self.module = module
         self.gnt_instance = GntInstance(module.run_command, self.error)
@@ -256,8 +259,6 @@ class ModuleActions:
         except StopIteration:
             self.last_status = InstanceStatus(self.instance, None)
         return self.last_status
-
-
 
     def create_instance(self):
         return self.gnt_instance.add(

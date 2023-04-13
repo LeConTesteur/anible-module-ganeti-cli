@@ -18,7 +18,7 @@ def copy_options_nth(options, parent_gnt_list_prefix, number=8):
         {
             o_k: {
                 **o_v,
-                'gnt_list_field':"{prefix}.{name}/{index}".format(
+                'gnt_list_field': "{prefix}.{name}/{index}".format(
                     prefix=parent_gnt_list_prefix,
                     name=o_v.get('gnt_list_field_name', o_k),
                     index=index
@@ -197,21 +197,20 @@ hypervisor_params = ArgumentSpec(
 osparams = []
 
 ganeti_instance_args_spec = {
-    "disk_template":ArgumentSpec(
+    "disk_template": ArgumentSpec(
         type='str', default=DEFAULT_VALUE, choices=disk_templates),
-    "disks":ArgumentSpec(type='list', required=False, options=disks_options),
-    "hypervisor":ArgumentSpec(type='str', default='kvm',
-                            choices=hypervisor_choices),
-    "iallocator":ArgumentSpec(type='str', required=False,
-                            default=None, gnt_list_ignore=True),
-    "nics":ArgumentSpec(type='list', required=False, options=nics_options),
-    "os_type":ArgumentSpec(type='str', required=True, gnt_list_field='os'),
-    #osparams=dict(type='dict', required=False, options=osparams),
-    "pnode":ArgumentSpec(type='str', required=False, default=None),
-    "hypervisor_params":ArgumentSpec(
+    "disks": ArgumentSpec(type='list', required=False, options=disks_options),
+    "hypervisor": ArgumentSpec(type='str', default='kvm',
+                               choices=hypervisor_choices),
+    "iallocator": ArgumentSpec(type='str', required=False,
+                               default=None, gnt_list_ignore=True),
+    "nics": ArgumentSpec(type='list', required=False, options=nics_options),
+    "os_type": ArgumentSpec(type='str', required=True, gnt_list_field='os'),
+    "pnode": ArgumentSpec(type='str', required=False, default=None),
+    "hypervisor_params": ArgumentSpec(
         type='dict', required=False, options=hypervisor_params),
-    "backend_param":ArgumentSpec(
+    "backend_param": ArgumentSpec(
         type='dict', required=False, options=backend_param),
-    "name_check":ArgumentSpec(type='bool', default=False, gnt_list_ignore=True),
-    "ip_check":ArgumentSpec(type='bool', default=False, gnt_list_ignore=True),
+    "name_check": ArgumentSpec(type='bool', default=False, gnt_list_ignore=True),
+    "ip_check": ArgumentSpec(type='bool', default=False, gnt_list_ignore=True),
 }

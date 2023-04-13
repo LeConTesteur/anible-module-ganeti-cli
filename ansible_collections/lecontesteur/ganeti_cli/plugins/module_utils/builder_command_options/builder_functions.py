@@ -11,10 +11,10 @@ from ansible_collections.lecontesteur.ganeti_cli.plugins.\
         PrefixRemove,
         PrefixTypeEnum,
         format_prefix
-)
+    )
 
 
-def build_prefixes_from_count_diff(expected_count:int, actual_count: int) -> Iterator[str]:
+def build_prefixes_from_count_diff(expected_count: int, actual_count: int) -> Iterator[str]:
     """Create list of Prefix depends of difference between expected and actual count
 
     Args:
@@ -39,27 +39,29 @@ def build_prefixes_from_count_diff(expected_count:int, actual_count: int) -> Ite
 
     ret = []
 
-    if count_diff == 0: # same number
+    if count_diff == 0:  # same number
         ret = repeat(PrefixModify(), expected_count)
 
-    elif count_diff < 0: #Much element, need remove surplus
+    elif count_diff < 0:  # Much element, need remove surplus
         ret = chain(
-                repeat(PrefixModify(), expected_count),
-                repeat(PrefixRemove(), abs(count_diff))
-            )
-    elif count_diff > 0: #Missing element, need add missing
+            repeat(PrefixModify(), expected_count),
+            repeat(PrefixRemove(), abs(count_diff))
+        )
+    elif count_diff > 0:  # Missing element, need add missing
         ret = chain(
-                repeat(PrefixModify(), actual_count),
-                repeat(PrefixAdd(), abs(count_diff))
-            )
+            repeat(PrefixModify(), actual_count),
+            repeat(PrefixAdd(), abs(count_diff))
+        )
     return ret
 
+
 def build_options_with_prefixes(
-        options: List[str], option_name:str, prefixes: Union[List[Prefix], Prefix]=None) -> str:
+        options: List[str], option_name: str, prefixes: Union[List[Prefix], Prefix] = None) -> str:
     """
     Builder of options for add list options (like --net, --disk)
     """
     last_prefix = None
+
     def remove_none(option_prefix):
         nonlocal last_prefix
         option = option_prefix[0] or ''
@@ -84,15 +86,16 @@ def build_options_with_prefixes(
             "--{option_name} {prefix}{options}".format(
                 option_name=option_name,
                 prefix=format_prefix(value[1], index),
-                options=value[0] \
-                        if value[1].type != PrefixTypeEnum.REMOVE else ''
+                options=value[0]
+                if value[1].type != PrefixTypeEnum.REMOVE else ''
             )
             for index, value in enumerate(it)
             if value[0]
         ]
     )
 
-def build_sub_dict_options(key:str, value:str):
+
+def build_sub_dict_options(key: str, value: str):
     """Build sub option for dict object
 
     Args:
@@ -105,7 +108,7 @@ def build_sub_dict_options(key:str, value:str):
     return "{}={}".format(key, value) if None not in (key, value) else ''
 
 
-def build_state_option(name:str, value:Any) -> str:
+def build_state_option(name: str, value: Any) -> str:
     """Build option string for one value
 
     Args:
@@ -117,7 +120,8 @@ def build_state_option(name:str, value:Any) -> str:
     """
     return "--{}".format(name) if None not in (name, value) and value else ""
 
-def build_no_state_option(name:str, value:Any) -> str:
+
+def build_no_state_option(name: str, value: Any) -> str:
     """Build option string for one value
 
     Args:
@@ -129,7 +133,8 @@ def build_no_state_option(name:str, value:Any) -> str:
     """
     return "--no-{}".format(name) if None not in (name, value) and not value else ""
 
-def build_single_option(name:str, value:Any) -> str:
+
+def build_single_option(name: str, value: Any) -> str:
     """Build option string for one value
 
     Args:
