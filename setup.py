@@ -1,4 +1,6 @@
+import os
 import setuptools
+import re
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -21,9 +23,13 @@ extras = {
     'tests': requirements_tests,
 }
 
+with open('{}/ansible_collections/lecontesteur/ganeti_cli/galaxy.yml'.format(os.path.dirname(__file__) or '.')) as f:
+    search = re.search('version: (?P<version>\d+[.]\d+[.]\d+)', f.read())
+    version = search.group('version')
+
 setuptools.setup(
     name="ansible-module-ganeti-cli",
-    version="0.0.1",
+    version=version,
     author="LeConTesteur",
     description="Ansible Module for ganeti",
     long_description=long_description,
@@ -38,7 +44,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     package_dir={"": "ansible_collections/"},
-    packages=setuptools.find_packages(where="ansible_collections"),
+    packages=setuptools.find_packages(where="ansible_collections", include=["lecontesteur", "*.yml"]),
     python_requires=">=3.5",
     install_requires = requirements,
     tests_require = requirements_tests,
