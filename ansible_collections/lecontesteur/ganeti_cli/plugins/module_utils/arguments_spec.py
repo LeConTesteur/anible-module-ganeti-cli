@@ -2,8 +2,8 @@
 Module contains the arguments spec of gnt-instance module
 """
 from collections import UserDict
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options.builders \
-    import DEFAULT_VALUE
+from ansible_collections.lecontesteur.ganeti_cli.plugins.\
+    module_utils.builder_command_options.builders import DEFAULT_VALUE
 
 
 MAX_NICS = 8

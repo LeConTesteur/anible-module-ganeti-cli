@@ -11,6 +11,13 @@
       line: PasswordAuthentication yes
     notify:
       - restart sshd
+  - name: Force ethX interfaces
+    ansible.builtin.lineinfile:
+      path: /etc/default/grub
+      regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+      line: 'GRUB_CMDLINE_LINUX_DEFAULT="net.ifnames=0 biosdevname=0"'
+    notify:
+      - Regen GRUB
   - name: Install python3 and pip3
     ansible.builtin.apt:
       name:
@@ -33,6 +40,7 @@
   - name: Install ganeti
     ansible.builtin.apt:
       name:
+        - jq
         - ganeti
         - ganeti-os-noop
       state: present
@@ -74,14 +82,16 @@
     host_netmask: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['netmask']}}"
     host_interface: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['interface']}}"
   handlers:
-    - name: restart network
-      ansible.builtin.systemd:
-        state: restarted
-        name: networking
     - name: restart sshd
       ansible.builtin.systemd:
         state: restarted
         name: sshd
     - name: reload hostname
       shell: hostname -F /etc/hostname
+    - name: Regen GRUB
+      ansible.builtin.shell: grub-mkconfig -o /boot/grub/grub.cfg
+    - name: restart network
+      ansible.builtin.systemd:
+        state: restarted
+        name: networking
 

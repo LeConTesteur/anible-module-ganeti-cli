@@ -1,8 +1,8 @@
 import datetime
 import unittest
 
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options import builder_functions
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options.prefixes import PrefixAdd, PrefixModify, PrefixRemove, PrefixStr
+from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.builder_command_options import builder_functions
+from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.builder_command_options.prefixes import PrefixAdd, PrefixModify, PrefixRemove, PrefixStr
 
 class TestBuildCmmandOptionsExtractors(unittest.TestCase):
   def _test_builder_functions(self, function, data_set):

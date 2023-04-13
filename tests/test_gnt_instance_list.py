@@ -2,7 +2,7 @@ import unittest
 
 from collections import OrderedDict, namedtuple
 
-from ansible_collections.ganeti.cli.plugins.module_utils.gnt_instance_list import (
+from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.gnt_instance_list import (
   parse_ganeti_list_output_line,
   build_gnt_instance_list_arguments,
   subheaders,

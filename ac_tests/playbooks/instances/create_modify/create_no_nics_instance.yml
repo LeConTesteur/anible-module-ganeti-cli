@@ -4,7 +4,7 @@
     ansible_python_interpreter: /usr/bin/python3
   tasks:
     - name: Create Instance - without nics
-      ganeti.cli.gnt_instance:
+      lecontesteur.ganeti_cli.gnt_instance:
         name: create_no_nics_instance_1
         state: present
         options:
@@ -19,7 +19,7 @@
       tags:
         - create
     - name: Modify Instance - with nics
-      ganeti.cli.gnt_instance:
+      lecontesteur.ganeti_cli.gnt_instance:
         name: create_no_nics_instance_2
         state: present
         options:

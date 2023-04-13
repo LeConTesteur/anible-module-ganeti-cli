@@ -11,12 +11,11 @@ iface {{interface_0_name}} inet manual
 
 
 auto br_gnt
-iface br_gnt inet static
+iface br_gnt inet manual
     bridge_ports {{interface_0_name}}
     bridge_stp off       # disable Spanning Tree Protocol
     bridge_waitport 0    # no delay before a port becomes available
     bridge_fd 0          # no forwarding delay
-    address    {{host_ip}}
-    netmask    {{host_netmask}}
-    gateway    {{host_gateway}}
-    post-up ip addr flush {{interface_0_name}}
+    post-up ip link set dev br_gnt address "$(ip -j a show {{interface_0_name}} | jq -r .[0].address)"
+    post-up dhclient br_gnt
+

@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch, Mock
 from ansible.module_utils import basic
 from ansible.module_utils.common.text.converters import to_bytes
-from ansible_collections.ganeti.cli.plugins.modules.gnt_instance import main
+from ansible_collections.lecontesteur.ganeti_cli.plugins.modules.gnt_instance import main
 
 def set_module_args(args):
     """prepare arguments so that they will be picked up during module creation"""
@@ -90,7 +90,7 @@ class TestMainGanetiInstanceCli(unittest.TestCase):
                                                  exit_json=exit_json,
                                                  fail_json=fail_json)
         self.mock_gnt_instance_helper = patch(
-            'ansible_collections.ganeti.cli.plugins.modules.gnt_instance.GntInstance',
+            'ansible_collections.lecontesteur.ganeti_cli.plugins.modules.gnt_instance.GntInstance',
             MockGntInstance
         )
         self.mock_module_helper.start()

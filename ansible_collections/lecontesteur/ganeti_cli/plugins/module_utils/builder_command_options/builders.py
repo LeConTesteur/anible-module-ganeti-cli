@@ -7,8 +7,8 @@ from functools import wraps
 from itertools import chain, zip_longest
 from typing import Any, Dict, Iterator, List, Callable
 from collections.abc import Iterable
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options.builder_functions \
-    import (
+from ansible_collections.lecontesteur.ganeti_cli.plugins.\
+    module_utils.builder_command_options.builder_functions import (
         build_no_state_option,
         build_options_with_prefixes,
         build_prefixes_from_count_diff,
@@ -16,18 +16,20 @@ from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options
         build_state_option,
         build_sub_dict_options
     )
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options.extractors import (
-    ValueInfoExtractor,
-    ValueParamExtractor,
-    recursive_get,
-    value_info_extractor
+from ansible_collections.lecontesteur.ganeti_cli.plugins.\
+    module_utils.builder_command_options.extractors import (
+        ValueInfoExtractor,
+        ValueParamExtractor,
+        recursive_get,
+        value_info_extractor
 )
 
 
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options.prefixes import (
-    Prefix,
-    PrefixIndex,
-    PrefixNone,
+from ansible_collections.lecontesteur.ganeti_cli.plugins.\
+    module_utils.builder_command_options.prefixes import (
+        Prefix,
+        PrefixIndex,
+        PrefixNone,
 )
 
 

@@ -4,6 +4,6 @@
     ansible_python_interpreter: /usr/bin/python3
   tasks:
     - name: Remove Instance
-      ganeti.cli.gnt_instance:
+      lecontesteur.ganeti_cli.gnt_instance:
         name: instance_state
         state: absent

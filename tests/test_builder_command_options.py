@@ -1,9 +1,9 @@
 from typing import Dict, List, Tuple
 import unittest
 
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options.builders import BuilderCommandOptionsSpecAbstract, CommandType
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options import builders
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options.prefixes import PrefixStr
+from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.builder_command_options.builders import BuilderCommandOptionsSpecAbstract, CommandType
+from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.builder_command_options import builders
+from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.builder_command_options.prefixes import PrefixStr
 
 # To args spec
 

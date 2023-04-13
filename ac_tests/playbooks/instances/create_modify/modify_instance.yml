@@ -4,7 +4,7 @@
     ansible_python_interpreter: /usr/bin/python3
   tasks:
     - name: Modify Instance - Create
-      ganeti.cli.gnt_instance:
+      lecontesteur.ganeti_cli.gnt_instance:
         name: modify_instance
         state: present
         options:
@@ -26,7 +26,7 @@
       tags:
         - create
     - name: Modify Instance - Modify
-      ganeti.cli.gnt_instance:
+      lecontesteur.ganeti_cli.gnt_instance:
         name: modify_instance
         state: present
         admin_state: started

@@ -1,7 +1,7 @@
 import datetime
 import unittest
 
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options import extractors
+from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.builder_command_options import extractors
 
 class TestBuildCommandOptionsExtractors(unittest.TestCase):
   def _test_extractor(self, extractor, data_set):

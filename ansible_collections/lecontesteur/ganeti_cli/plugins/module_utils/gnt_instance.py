@@ -5,30 +5,31 @@ from typing import Callable, Dict, List, Tuple
 import re
 
 
-from ansible_collections.ganeti.cli.plugins.module_utils.gnt_command import (
+from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.gnt_command import (
   GntCommand,
 )
-from ansible_collections.ganeti.cli.plugins.module_utils.gnt_instance_list import (
+from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.gnt_instance_list import (
   build_gnt_instance_list_arguments,
   parse_ganeti_list_output
 )
 
-from ansible_collections.ganeti.cli.plugins.module_utils.parse_info_response import (
+from ansible_collections.lecontesteur.ganeti_cli.plugins.module_utils.parse_info_response import (
   parse_from_stdout
 )
 
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options.builders import (
-    BuilderCommand,
-    BuilderCommandOptionsRootSpec,
-    BuilderCommandOptionsSpecDict,
-    BuilderCommandOptionsSpecElement,
-    BuilderCommandOptionsSpecElementOnlyCreate,
-    BuilderCommandOptionsSpecList,
-    BuilderCommandOptionsSpecListSubElement,
-    BuilderCommandOptionsSpecNoStateElement,
-    BuilderCommandOptionsSpecStateElement,
-    BuilderCommandOptionsSpecSubElement,
-    CommandType
+from ansible_collections.lecontesteur.ganeti_cli.plugins.\
+    module_utils.builder_command_options.builders import (
+        BuilderCommand,
+        BuilderCommandOptionsRootSpec,
+        BuilderCommandOptionsSpecDict,
+        BuilderCommandOptionsSpecElement,
+        BuilderCommandOptionsSpecElementOnlyCreate,
+        BuilderCommandOptionsSpecList,
+        BuilderCommandOptionsSpecListSubElement,
+        BuilderCommandOptionsSpecNoStateElement,
+        BuilderCommandOptionsSpecStateElement,
+        BuilderCommandOptionsSpecSubElement,
+        CommandType
 )
 
 

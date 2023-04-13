@@ -9,11 +9,12 @@ from typing import Any, Dict
 __metaclass__ = type  # pylint: disable=invalid-name
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options.builders \
-    import BuilderCommand
-from ansible_collections.ganeti.cli.plugins.module_utils.gnt_instance import (
-    GntInstance,
-    builder_gnt_instance_spec
+from ansible_collections.lecontesteur.ganeti_cli.plugins.\
+    module_utils.builder_command_options.builders import BuilderCommand
+from ansible_collections.lecontesteur.ganeti_cli.plugins.\
+    module_utils.gnt_instance import (
+        GntInstance,
+        builder_gnt_instance_spec
 )
 
 
@@ -61,7 +62,7 @@ author:
 EXAMPLES = r'''
 # Create a instance
 - name: Create Instance
-  ganeti.cli.gnt_instance:
+  lecontesteur.ganeti_cli.gnt_instance:
     name: Instance Name
     state: present
     options:
@@ -84,7 +85,7 @@ EXAMPLES = r'''
 
 # Modify a instance. When you want modify a instance, you need set all information
 - name: Modify Instance - Modify
-  ganeti.cli.gnt_instance:
+  lecontesteur.ganeti_cli.gnt_instance:
     name: modify_instance
     state: present
     admin_state: started
@@ -105,14 +106,14 @@ EXAMPLES = r'''
 
 # Restart a instance
 - name: Restart Instance
-  ganeti.cli.gnt_instance:
+  lecontesteur.ganeti_cli.gnt_instance:
     name: Instance Name
     state: present
     admin_state: restarted
 
 # Remove a instance
 - name: Remove Instance
-  ganeti.cli.gnt_instance:
+  lecontesteur.ganeti_cli.gnt_instance:
     name: Instance Name
     state: absent
 '''

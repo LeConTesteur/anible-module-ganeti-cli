@@ -2,14 +2,15 @@
 """
 from itertools import chain, repeat, zip_longest
 from typing import Any, Iterator, List, Union
-from ansible_collections.ganeti.cli.plugins.module_utils.builder_command_options.prefixes import (
-  Prefix,
-  PrefixAdd,
-  PrefixModify,
-  PrefixNone,
-  PrefixRemove,
-  PrefixTypeEnum,
-  format_prefix
+from ansible_collections.lecontesteur.ganeti_cli.plugins.\
+    module_utils.builder_command_options.prefixes import (
+        Prefix,
+        PrefixAdd,
+        PrefixModify,
+        PrefixNone,
+        PrefixRemove,
+        PrefixTypeEnum,
+        format_prefix
 )
 
 

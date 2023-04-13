@@ -4,7 +4,7 @@
     ansible_python_interpreter: /usr/bin/python3
   tasks:
     - name: Start Instance
-      ganeti.cli.gnt_instance:
+      lecontesteur.ganeti_cli.gnt_instance:
         name: instance_admin_state
         state: present
         admin_state: started
